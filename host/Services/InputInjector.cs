@@ -7,6 +7,19 @@ public sealed class InputInjector
 {
     private readonly object _gate = new();
 
+    private const uint InputKeyboard = 1;
+    private const uint InputMouse = 0;
+    private const uint KeyEventExtendedKey = 0x0001;
+    private const uint KeyEventKeyUp = 0x0002;
+    private const uint KeyEventUnicode = 0x0004;
+    private const uint KeyEventScancode = 0x0008;
+    private const uint MouseFlagMove = 0x0001;
+    private const uint MouseFlagLeftDown = 0x0002;
+    private const uint MouseFlagLeftUp = 0x0004;
+    private const uint MouseFlagRightDown = 0x0008;
+    private const uint MouseFlagRightUp = 0x0010;
+    private const uint MouseFlagWheel = 0x0800;
+
     public void SendAction(ActionMapping mapping)
     {
         if (mapping.Keys.Count == 0)
@@ -48,24 +61,18 @@ public sealed class InputInjector
             var inputs = new List<INPUT>();
             foreach (var mod in modifiers)
             {
-                inputs.Add(KeyDown(mod));
+                inputs.Add(KeyEvent(mod, down: true));
             }
 
-            inputs.Add(KeyDown(main.Value));
-            inputs.Add(KeyUp(main.Value));
+            inputs.Add(KeyEvent(main.Value, down: true));
+            inputs.Add(KeyEvent(main.Value, down: false));
 
             for (var i = modifiers.Count - 1; i >= 0; i--)
             {
-                inputs.Add(KeyUp(modifiers[i]));
+                inputs.Add(KeyEvent(modifiers[i], down: false));
             }
 
-            var arr = inputs.ToArray();
-            _ = SendInput((uint)arr.Length, arr, Marshal.SizeOf<INPUT>());
-
-            if (mapping.HoldMs > 0)
-            {
-                Thread.Sleep(mapping.HoldMs);
-            }
+            Dispatch(inputs);
         }
     }
 
@@ -73,20 +80,22 @@ public sealed class InputInjector
     {
         lock (_gate)
         {
-            var input = new INPUT
-            {
-                type = InputType.Mouse,
-                U = new InputUnion
+            Dispatch(
+            [
+                new INPUT
                 {
-                    mi = new MOUSEINPUT
+                    type = InputMouse,
+                    U = new InputUnion
                     {
-                        dx = dx,
-                        dy = dy,
-                        dwFlags = MouseEventFlags.Move
+                        mi = new MOUSEINPUT
+                        {
+                            dx = dx,
+                            dy = dy,
+                            dwFlags = MouseFlagMove
+                        }
                     }
                 }
-            };
-            _ = SendInput(1, [input], Marshal.SizeOf<INPUT>());
+            ]);
         }
     }
 
@@ -94,22 +103,21 @@ public sealed class InputInjector
     {
         lock (_gate)
         {
-            var downFlag = right ? MouseEventFlags.RightDown : MouseEventFlags.LeftDown;
-            var upFlag = right ? MouseEventFlags.RightUp : MouseEventFlags.LeftUp;
-            INPUT[] inputs =
+            var down = right ? MouseFlagRightDown : MouseFlagLeftDown;
+            var up = right ? MouseFlagRightUp : MouseFlagLeftUp;
+            Dispatch(
             [
-                new()
+                new INPUT
                 {
-                    type = InputType.Mouse,
-                    U = new InputUnion { mi = new MOUSEINPUT { dwFlags = downFlag } }
+                    type = InputMouse,
+                    U = new InputUnion { mi = new MOUSEINPUT { dwFlags = down } }
                 },
-                new()
+                new INPUT
                 {
-                    type = InputType.Mouse,
-                    U = new InputUnion { mi = new MOUSEINPUT { dwFlags = upFlag } }
+                    type = InputMouse,
+                    U = new InputUnion { mi = new MOUSEINPUT { dwFlags = up } }
                 }
-            ];
-            _ = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+            ]);
         }
     }
 
@@ -117,19 +125,21 @@ public sealed class InputInjector
     {
         lock (_gate)
         {
-            var input = new INPUT
-            {
-                type = InputType.Mouse,
-                U = new InputUnion
+            Dispatch(
+            [
+                new INPUT
                 {
-                    mi = new MOUSEINPUT
+                    type = InputMouse,
+                    U = new InputUnion
                     {
-                        mouseData = (uint)delta,
-                        dwFlags = MouseEventFlags.Wheel
+                        mi = new MOUSEINPUT
+                        {
+                            mouseData = unchecked((uint)delta),
+                            dwFlags = MouseFlagWheel
+                        }
                     }
                 }
-            };
-            _ = SendInput(1, [input], Marshal.SizeOf<INPUT>());
+            ]);
         }
     }
 
@@ -139,58 +149,105 @@ public sealed class InputInjector
         {
             foreach (var ch in text)
             {
-                if (ch == '\n' || ch == '\r')
+                if (ch is '\n' or '\r')
                 {
                     SendAction(new ActionMapping { Keys = ["enter"] });
                     continue;
                 }
 
-                var down = new INPUT
-                {
-                    type = InputType.Keyboard,
-                    U = new InputUnion
+                Dispatch(
+                [
+                    new INPUT
                     {
-                        ki = new KEYBDINPUT
+                        type = InputKeyboard,
+                        U = new InputUnion
                         {
-                            wScan = ch,
-                            dwFlags = KeyEventFlags.Unicode
+                            ki = new KEYBDINPUT
+                            {
+                                wScan = ch,
+                                dwFlags = KeyEventUnicode
+                            }
+                        }
+                    },
+                    new INPUT
+                    {
+                        type = InputKeyboard,
+                        U = new InputUnion
+                        {
+                            ki = new KEYBDINPUT
+                            {
+                                wScan = ch,
+                                dwFlags = KeyEventUnicode | KeyEventKeyUp
+                            }
                         }
                     }
-                };
-                var up = new INPUT
-                {
-                    type = InputType.Keyboard,
-                    U = new InputUnion
-                    {
-                        ki = new KEYBDINPUT
-                        {
-                            wScan = ch,
-                            dwFlags = KeyEventFlags.Unicode | KeyEventFlags.KeyUp
-                        }
-                    }
-                };
-                _ = SendInput(2, [down, up], Marshal.SizeOf<INPUT>());
+                ]);
             }
         }
     }
 
-    private static INPUT KeyDown(ushort vk) => new()
+    private static void Dispatch(IReadOnlyList<INPUT> inputs)
     {
-        type = InputType.Keyboard,
-        U = new InputUnion
+        var arr = inputs.ToArray();
+        var sent = SendInput((uint)arr.Length, arr, Marshal.SizeOf<INPUT>());
+        if (sent != arr.Length)
         {
-            ki = new KEYBDINPUT { wVk = vk, dwFlags = 0 }
+            // Best-effort; callers log at a higher layer when needed.
         }
-    };
+    }
 
-    private static INPUT KeyUp(ushort vk) => new()
+    private static INPUT KeyEvent(ushort vk, bool down)
     {
-        type = InputType.Keyboard,
-        U = new InputUnion
+        var scan = (ushort)MapVirtualKey(vk, 0);
+        uint flags = 0;
+        if (!down)
         {
-            ki = new KEYBDINPUT { wVk = vk, dwFlags = KeyEventFlags.KeyUp }
+            flags |= KeyEventKeyUp;
         }
-    };
+
+        if (IsExtended(vk))
+        {
+            flags |= KeyEventExtendedKey;
+        }
+
+        // Prefer scancodes where available — more reliable for games / RDP.
+        if (scan != 0)
+        {
+            flags |= KeyEventScancode;
+            return new INPUT
+            {
+                type = InputKeyboard,
+                U = new InputUnion
+                {
+                    ki = new KEYBDINPUT
+                    {
+                        wVk = 0,
+                        wScan = scan,
+                        dwFlags = flags
+                    }
+                }
+            };
+        }
+
+        return new INPUT
+        {
+            type = InputKeyboard,
+            U = new InputUnion
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = vk,
+                    wScan = 0,
+                    dwFlags = flags & ~KeyEventScancode
+                }
+            }
+        };
+    }
+
+    private static bool IsExtended(ushort vk) =>
+        vk is VirtualKeys.Left or VirtualKeys.Right or VirtualKeys.Up or VirtualKeys.Down
+            or VirtualKeys.Control or VirtualKeys.Menu
+            or 0x21 or 0x22 or 0x23 or 0x24 or 0x2D or 0x2E; // prior/next/end/home/ins/del
 
     public static ushort MapKey(string key) => key.ToLowerInvariant() switch
     {
@@ -264,38 +321,15 @@ public sealed class InputInjector
         public const ushort Oem7 = 0xDE;
     }
 
-    private enum InputType : uint
-    {
-        Mouse = 0,
-        Keyboard = 1
-    }
-
-    [Flags]
-    private enum KeyEventFlags : uint
-    {
-        KeyUp = 0x0002,
-        Unicode = 0x0004
-    }
-
-    [Flags]
-    private enum MouseEventFlags : uint
-    {
-        Move = 0x0001,
-        LeftDown = 0x0002,
-        LeftUp = 0x0004,
-        RightDown = 0x0008,
-        RightUp = 0x0010,
-        Wheel = 0x0800
-    }
-
     [StructLayout(LayoutKind.Sequential)]
     private struct INPUT
     {
-        public InputType type;
+        public uint type;
         public InputUnion U;
     }
 
-    [StructLayout(LayoutKind.Explicit)]
+    // Explicit size matches Win32 INPUT union on x64 (MOUSEINPUT is largest).
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     private struct InputUnion
     {
         [FieldOffset(0)] public MOUSEINPUT mi;
@@ -308,7 +342,7 @@ public sealed class InputInjector
         public int dx;
         public int dy;
         public uint mouseData;
-        public MouseEventFlags dwFlags;
+        public uint dwFlags;
         public uint time;
         public IntPtr dwExtraInfo;
     }
@@ -318,11 +352,14 @@ public sealed class InputInjector
     {
         public ushort wVk;
         public ushort wScan;
-        public KeyEventFlags dwFlags;
+        public uint dwFlags;
         public uint time;
         public IntPtr dwExtraInfo;
     }
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    [DllImport("user32.dll")]
+    private static extern uint MapVirtualKey(uint uCode, uint uMapType);
 }

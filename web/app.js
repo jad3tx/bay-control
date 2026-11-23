@@ -279,9 +279,19 @@ function bindUi() {
   document.querySelector(".panels").addEventListener("click", (ev) => {
     const btn = ev.target.closest("[data-action]");
     if (!btn || btn.disabled) return;
+    ev.preventDefault();
     btn.classList.add("pressed");
     setTimeout(() => btn.classList.remove("pressed"), 120);
+    // Blur so a following Space/Enter (or SendInput landing here) does not re-fire the button.
+    btn.blur();
     send({ type: "action", action: btn.dataset.action });
+  });
+
+  // Stop Space/Enter from activating the focused control button in the browser.
+  document.addEventListener("keydown", (ev) => {
+    if ((ev.key === " " || ev.key === "Enter") && ev.target instanceof HTMLButtonElement && ev.target.dataset.action) {
+      ev.preventDefault();
+    }
   });
 
   document.querySelector(".track-actions").addEventListener("click", (ev) => {

@@ -10,30 +10,41 @@ public sealed class FocusGuard(ProfileService profiles)
     public FocusState GetState()
     {
         var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero)
-        {
-            return FocusState.Paused(null, null, null);
-        }
-
-        _ = GetWindowThreadProcessId(hwnd, out var pid);
         string? processName = null;
-        try
+        string? title = null;
+
+        if (hwnd != IntPtr.Zero)
         {
-            processName = Process.GetProcessById((int)pid).ProcessName;
-        }
-        catch
-        {
-            // Process may have exited between queries.
+            _ = GetWindowThreadProcessId(hwnd, out var pid);
+            try
+            {
+                processName = Process.GetProcessById((int)pid).ProcessName;
+            }
+            catch
+            {
+                // Process may have exited between queries.
+            }
+
+            title = GetWindowTitle(hwnd);
+            var foregroundProfile = profiles.ResolveActive(processName, title);
+            if (foregroundProfile is not null)
+            {
+                return FocusState.Active(processName, title, foregroundProfile);
+            }
         }
 
-        var title = GetWindowTitle(hwnd);
-        var profile = profiles.ResolveActive(processName, title);
-        if (profile is null)
+        // Same-PC browser testing: Bay Control UI steals focus on tap, but the sim
+        // (or an RDP window titled like GSPro) is still running. Report as active so
+        // the phone UI stays armed; injection will refocus before SendInput.
+        foreach (var profile in profiles.Profiles.Values)
         {
-            return FocusState.Paused(processName, title, null);
+            if (WindowFocus.TryFindRunning(profile, out _, out var detail))
+            {
+                return FocusState.Active(processName, title ?? detail, profile);
+            }
         }
 
-        return FocusState.Active(processName, title, profile);
+        return FocusState.Paused(processName, title, null);
     }
 
     public bool AllowInput(out SimProfile? profile, out string reason)

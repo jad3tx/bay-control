@@ -102,7 +102,7 @@ public sealed class CommandRouter(
             return CommandResult.Fail("missing_action");
         }
 
-        if (!focus.AllowInput(out var profile, out var reason) || profile is null)
+        if (!TryArmSim(out var profile, out var reason) || profile is null)
         {
             state.LogAction($"blocked {actionId}: {reason}");
             return CommandResult.Fail(reason);
@@ -132,7 +132,7 @@ public sealed class CommandRouter(
 
     private CommandResult HandleMouseMove(int dx, int dy)
     {
-        if (!focus.AllowInput(out _, out var reason))
+        if (!TryArmSim(out _, out var reason))
         {
             return CommandResult.Fail(reason);
         }
@@ -143,7 +143,7 @@ public sealed class CommandRouter(
 
     private CommandResult HandleMouseClick(string? button)
     {
-        if (!focus.AllowInput(out _, out var reason))
+        if (!TryArmSim(out _, out var reason))
         {
             return CommandResult.Fail(reason);
         }
@@ -155,7 +155,7 @@ public sealed class CommandRouter(
 
     private CommandResult HandleMouseScroll(int delta)
     {
-        if (!focus.AllowInput(out _, out var reason))
+        if (!TryArmSim(out _, out var reason))
         {
             return CommandResult.Fail(reason);
         }
@@ -171,7 +171,7 @@ public sealed class CommandRouter(
             return CommandResult.Fail("missing_text");
         }
 
-        if (!focus.AllowInput(out _, out var reason))
+        if (!TryArmSim(out _, out var reason))
         {
             return CommandResult.Fail(reason);
         }
@@ -179,6 +179,53 @@ public sealed class CommandRouter(
         input.TypeText(text);
         state.LogAction($"type:{text.Length} chars");
         return CommandResult.Ok("typed");
+    }
+
+    /// <summary>
+    /// Resolve the active profile and force the sim (or RDP window titled like it) to the foreground
+    /// before SendInput. Stops same-PC browser clicks from eating arrow/space keys.
+    /// </summary>
+    private bool TryArmSim(out Models.SimProfile? profile, out string reason)
+    {
+        profile = null;
+        if (state.RemotePaused)
+        {
+            reason = "Remote paused from tray";
+            return false;
+        }
+
+        var focusState = focus.GetState();
+        profile = focusState.Profile;
+
+        if (profile is null)
+        {
+            // Browser may be focused after a tap — still find a running sim profile window.
+            if (!WindowFocus.TryFocusSim(profiles, out _, out var detail))
+            {
+                reason = "Paused — sim not focused";
+                return false;
+            }
+
+            // Re-evaluate after focus steal.
+            focusState = focus.GetState();
+            profile = focusState.Profile ?? profiles.Profiles.Values.FirstOrDefault();
+            reason = profile is null ? detail : $"Controlling: {profile.DisplayName}";
+            return profile is not null;
+        }
+
+        if (!WindowFocus.TryFocusProfile(profile, out _, out var focusDetail))
+        {
+            // Fall back to whatever is already focused if title matched earlier.
+            if (!focusState.IsSimFocused)
+            {
+                reason = "Paused — sim not focused";
+                return false;
+            }
+        }
+
+        reason = $"Controlling: {profile.DisplayName}";
+        _ = focusDetail;
+        return true;
     }
 
     private CommandResult HandleSetProfile(string? profileId)
