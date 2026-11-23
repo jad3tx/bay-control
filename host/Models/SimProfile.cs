@@ -16,6 +16,15 @@ public sealed class SimProfile
     [JsonPropertyName("windowTitleContains")]
     public List<string> WindowTitleContains { get; set; } = [];
 
+    /// <summary>
+    /// When the sim runs inside Remote Desktop, local SendInput must target the RDP client.
+    /// </summary>
+    [JsonPropertyName("forwardProcessNames")]
+    public List<string> ForwardProcessNames { get; set; } = [];
+
+    [JsonPropertyName("forwardWindowTitleContains")]
+    public List<string> ForwardWindowTitleContains { get; set; } = [];
+
     [JsonPropertyName("actions")]
     public Dictionary<string, ActionMapping> Actions { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }

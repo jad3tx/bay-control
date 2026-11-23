@@ -3,6 +3,8 @@
   "displayName": "Pureplay",
   "processNames": ["Pureplay", "PurePlay", "PureplayGolf", "Pure Play"],
   "windowTitleContains": ["Pureplay", "PurePlay", "Pure Play"],
+  "forwardProcessNames": ["mstsc", "msrdc", "RemoteDesktop"],
+  "forwardWindowTitleContains": ["Remote Desktop", "Remote Desktop Connection"],
   "actions": {
     "toggle_ui": { "keys": ["esc"], "label": "Show UI", "group": "round" },
     "clear_tracers": { "keys": ["f1"], "label": "Clear Tracers", "group": "round" },

@@ -3,6 +3,8 @@
   "displayName": "GSPro",
   "processNames": ["GSPro", "GS Pro", "GSpro"],
   "windowTitleContains": ["GSPro", "GS Pro"],
+  "forwardProcessNames": ["mstsc", "msrdc", "RemoteDesktop"],
+  "forwardWindowTitleContains": ["Remote Desktop", "Remote Desktop Connection"],
   "actions": {
     "toggle_ui": { "keys": ["esc"], "label": "Show UI", "group": "round" },
     "clear_tracers": { "keys": ["f1"], "label": "Clear Tracers", "group": "round" },

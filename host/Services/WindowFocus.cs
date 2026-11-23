@@ -46,7 +46,45 @@ public static class WindowFocus
         hwnd = IntPtr.Zero;
         detail = $"no window for {profile.Id}";
 
-        // Prefer matching process main window.
+        // 1) Native sim process / title on this PC
+        if (TryMatchProcesses(profile.ProcessNames, profile.WindowTitleContains, profile.DisplayName, "native",
+                out hwnd, out detail))
+        {
+            return true;
+        }
+
+        // 2) Remote Desktop client forwarding (GSPro/Pureplay inside an RDP session)
+        if (TryMatchProcesses(profile.ForwardProcessNames, profile.ForwardWindowTitleContains, profile.DisplayName,
+                "RDP forward", out hwnd, out detail))
+        {
+            return true;
+        }
+
+        // 3) Enumerate top-level windows (title match)
+        if (TryEnumTitles(profile.WindowTitleContains, profile.DisplayName, "enum", out hwnd, out detail))
+        {
+            return true;
+        }
+
+        if (TryEnumTitles(profile.ForwardWindowTitleContains, profile.DisplayName, "RDP enum", out hwnd, out detail))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryMatchProcesses(
+        IReadOnlyList<string> processNames,
+        IReadOnlyList<string> titleContains,
+        string displayName,
+        string via,
+        out IntPtr hwnd,
+        out string detail)
+    {
+        hwnd = IntPtr.Zero;
+        detail = "";
+
         foreach (var process in Process.GetProcesses())
         {
             try
@@ -57,19 +95,16 @@ public static class WindowFocus
                 }
 
                 var name = process.ProcessName;
-                if (profile.ProcessNames.Any(p => name.Contains(p, StringComparison.OrdinalIgnoreCase)))
-                {
-                    hwnd = process.MainWindowHandle;
-                    detail = $"{profile.DisplayName} via process {name}";
-                    return true;
-                }
-
                 var title = process.MainWindowTitle;
-                if (!string.IsNullOrWhiteSpace(title) &&
-                    profile.WindowTitleContains.Any(t => title.Contains(t, StringComparison.OrdinalIgnoreCase)))
+
+                var processHit = processNames.Any(p => name.Contains(p, StringComparison.OrdinalIgnoreCase));
+                var titleHit = !string.IsNullOrWhiteSpace(title) &&
+                               titleContains.Any(t => title.Contains(t, StringComparison.OrdinalIgnoreCase));
+
+                if (processHit || titleHit)
                 {
                     hwnd = process.MainWindowHandle;
-                    detail = $"{profile.DisplayName} via title '{title}'";
+                    detail = $"{displayName} via {via} ({name} / '{title}')";
                     return true;
                 }
             }
@@ -83,9 +118,25 @@ public static class WindowFocus
             }
         }
 
-        // Enumerate all top-level windows as fallback (covers some RDP title cases).
+        return false;
+    }
+
+    private static bool TryEnumTitles(
+        IReadOnlyList<string> titleContains,
+        string displayName,
+        string via,
+        out IntPtr hwnd,
+        out string detail)
+    {
+        hwnd = IntPtr.Zero;
+        detail = "";
+        if (titleContains.Count == 0)
+        {
+            return false;
+        }
+
         IntPtr found = IntPtr.Zero;
-        string foundDetail = detail;
+        string foundDetail = "";
         EnumWindows((h, _) =>
         {
             if (!IsWindowVisible(h))
@@ -101,24 +152,24 @@ public static class WindowFocus
                 return true;
             }
 
-            if (profile.WindowTitleContains.Any(t => title.Contains(t, StringComparison.OrdinalIgnoreCase)))
+            if (titleContains.Any(t => title.Contains(t, StringComparison.OrdinalIgnoreCase)))
             {
                 found = h;
-                foundDetail = $"{profile.DisplayName} via enum '{title}'";
+                foundDetail = $"{displayName} via {via} '{title}'";
                 return false;
             }
 
             return true;
         }, IntPtr.Zero);
 
-        if (found != IntPtr.Zero)
+        if (found == IntPtr.Zero)
         {
-            hwnd = found;
-            detail = foundDetail;
-            return true;
+            return false;
         }
 
-        return false;
+        hwnd = found;
+        detail = foundDetail;
+        return true;
     }
 
     private static void ForceForeground(IntPtr hwnd)
