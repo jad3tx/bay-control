@@ -142,42 +142,72 @@ function healthKind(code) {
   return "err";
 }
 
+function pick(obj, ...keys) {
+  if (!obj) return undefined;
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+  }
+  return undefined;
+}
+
 function applyStatus(msg) {
-  const kind = healthKind(msg.healthCode) || (msg.remotePaused || !msg.simFocused ? "warn" : "ok");
-  setStatus(msg.statusText || "Ready", kind);
-  if (msg.tip) {
-    els.statusChip.title = msg.tip;
+  const healthCode = pick(msg, "healthCode", "HealthCode");
+  const statusText = pick(msg, "statusText", "StatusText") || "Ready";
+  const tip = pick(msg, "tip", "Tip");
+  const bookmarkHint = pick(msg, "bookmarkHint", "BookmarkHint");
+  const remotePaused = pick(msg, "remotePaused", "RemotePaused");
+  const simFocused = pick(msg, "simFocused", "SimFocused");
+  const profiles = pick(msg, "profiles", "Profiles");
+  const activeProfileId = pick(msg, "activeProfileId", "ActiveProfileId");
+  const manualOverrideId = pick(msg, "manualOverrideId", "ManualOverrideId");
+
+  const kind = healthKind(healthCode) || (remotePaused || !simFocused ? "warn" : "ok");
+  setStatus(statusText, kind);
+  if (tip) {
+    els.statusChip.title = tip;
   }
 
   const tipEl = document.getElementById("healthTip");
   if (tipEl) {
-    tipEl.textContent = msg.tip || "";
-    tipEl.classList.toggle("hidden", !msg.tip);
+    tipEl.textContent = tip || "";
+    tipEl.classList.toggle("hidden", !tip);
   }
 
   const bookmarkEl = document.getElementById("bookmarkHint");
-  if (bookmarkEl && msg.bookmarkHint && !bookmarkEl.dataset.shown) {
-    bookmarkEl.textContent = msg.bookmarkHint;
+  if (bookmarkEl && bookmarkHint && !bookmarkEl.dataset.shown) {
+    bookmarkEl.textContent = bookmarkHint;
     bookmarkEl.classList.remove("hidden");
     bookmarkEl.dataset.shown = "1";
   }
 
-  if (Array.isArray(msg.profiles)) {
-    state.profiles = Object.fromEntries(msg.profiles.map((p) => [p.id, p]));
+  if (Array.isArray(profiles)) {
+    state.profiles = Object.fromEntries(profiles.map((p) => {
+      const id = pick(p, "id", "Id");
+      return [id, {
+        id,
+        displayName: pick(p, "displayName", "DisplayName"),
+        actions: pick(p, "actions", "Actions") || {}
+      }];
+    }).filter(([id]) => !!id));
     const current = els.profileSelect.value;
     els.profileSelect.innerHTML = `<option value="auto">Auto-detect</option>` +
-      msg.profiles.map((p) => `<option value="${p.id}">${p.displayName}</option>`).join("");
-    els.profileSelect.value = msg.manualOverrideId || current || "auto";
-    renderAllPads(msg.activeProfileId || msg.profiles[0]?.id);
-  } else if (msg.activeProfileId) {
-    renderAllPads(msg.activeProfileId);
+      profiles.map((p) => {
+        const id = pick(p, "id", "Id");
+        const name = pick(p, "displayName", "DisplayName");
+        return `<option value="${id}">${name}</option>`;
+      }).join("");
+    els.profileSelect.value = manualOverrideId || current || "auto";
+    const firstId = pick(profiles[0], "id", "Id");
+    renderAllPads(activeProfileId || firstId);
+  } else if (activeProfileId) {
+    renderAllPads(activeProfileId);
   }
 }
 
 function actionMeta(profileId, actionId) {
   const profile = state.profiles[profileId];
-  const action = profile?.actions?.[actionId];
-  return action || null;
+  const actions = pick(profile, "actions", "Actions") || {};
+  return actions[actionId] || null;
 }
 
 function renderAllPads(profileId) {

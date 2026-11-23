@@ -8,6 +8,11 @@ namespace BayControl.Host.Services;
 
 public sealed class WebSocketHub(AppState state, CommandRouter router)
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     private readonly ConcurrentDictionary<Guid, WebSocket> _sockets = new();
 
     public async Task HandleAsync(HttpContext context)
@@ -96,7 +101,7 @@ public sealed class WebSocketHub(AppState state, CommandRouter router)
 
     private static async Task SendJsonAsync(WebSocket socket, object payload)
     {
-        var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload));
+        var bytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(payload, JsonOptions));
         await socket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None);
     }
 }
