@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/host/">
+    <Project Path="host/BayControl.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BayControl.Tests.csproj" />
+  </Folder>
+</Solution>

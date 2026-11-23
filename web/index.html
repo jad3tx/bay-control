@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f2a1c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Bay Control</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="sky" aria-hidden="true"></div>
+  <div class="fairway" aria-hidden="true"></div>
+
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"></span>
+      <h1>Bay Control</h1>
+    </div>
+    <div class="status" id="statusChip">Connecting…</div>
+  </header>
+
+  <main>
+    <section id="authGate" class="auth hidden">
+      <h2>Enter PIN</h2>
+      <p>Shown on the Bay Control window on your sim PC.</p>
+      <form id="pinForm">
+        <input id="pinInput" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="6-digit PIN" />
+        <button type="submit">Connect</button>
+      </form>
+      <p class="hint" id="authError"></p>
+    </section>
+
+    <section id="controller" class="controller hidden">
+      <div class="toolbar">
+        <label class="profile">
+          Profile
+          <select id="profileSelect">
+            <option value="auto">Auto-detect</option>
+          </select>
+        </label>
+        <button type="button" class="ghost" id="helpBtn">Help</button>
+      </div>
+
+      <nav class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="play">Play</button>
+        <button type="button" class="tab" data-tab="green">Green</button>
+        <button type="button" class="tab" data-tab="cameras">Cameras</button>
+        <button type="button" class="tab" data-tab="round">Round</button>
+        <button type="button" class="tab" data-tab="more">More</button>
+        <button type="button" class="tab" data-tab="trackpad">Trackpad</button>
+      </nav>
+
+      <div class="panels">
+        <div class="panel active" id="panel-play" data-group="play"></div>
+        <div class="panel" id="panel-green" data-group="green"></div>
+        <div class="panel" id="panel-cameras" data-group="cameras"></div>
+        <div class="panel" id="panel-round" data-group="round"></div>
+        <div class="panel" id="panel-more" data-group="more"></div>
+        <div class="panel" id="panel-trackpad">
+          <div class="trackpad" id="trackpad" tabindex="0">
+            <span>Drag to move · tap to click</span>
+          </div>
+          <div class="track-actions">
+            <button type="button" data-mouse="left">Left Click</button>
+            <button type="button" data-mouse="right">Right Click</button>
+            <button type="button" data-scroll="120">Scroll ↑</button>
+            <button type="button" data-scroll="-120">Scroll ↓</button>
+          </div>
+          <div class="keyboard-sheet">
+            <input id="typeInput" type="text" placeholder="Type into the sim…" />
+            <button type="button" id="sendText">Send</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <dialog id="helpDialog">
+    <h2>Setup</h2>
+    <ol>
+      <li>Keep Bay Control running on the sim PC.</li>
+      <li>Phone/tablet must be on the same Wi‑Fi.</li>
+      <li>Focus GSPro or Pureplay so controls are armed.</li>
+      <li>On iOS/Android: Share → Add to Home Screen for full-screen use.</li>
+    </ol>
+    <p>Course map streaming is planned for a later release.</p>
+    <button type="button" id="closeHelp">Close</button>
+  </dialog>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

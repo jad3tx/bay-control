@@ -1,0 +1,17 @@
+{
+  "name": "Bay Control",
+  "short_name": "BayControl",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f2a1c",
+  "theme_color": "#0f2a1c",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

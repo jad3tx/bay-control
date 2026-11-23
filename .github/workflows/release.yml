@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore
+        run: dotnet restore BayControl.slnx
+      - name: Build
+        run: dotnet build BayControl.slnx -c Release --no-restore
+      - name: Test
+        run: dotnet test BayControl.slnx -c Release --no-build
+      - name: Publish
+        run: >
+          dotnet publish host/BayControl.Host.csproj -c Release -r win-x64
+          --self-contained true -p:PublishSingleFile=true
+          -o artifacts/BayControl
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BayControl-win-x64
+          path: artifacts/BayControl
+      - name: Zip release
+        if: startsWith(github.ref, 'refs/tags/')
+        run: Compress-Archive -Path artifacts/BayControl/* -DestinationPath BayControl-win-x64.zip
+      - name: GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: BayControl-win-x64.zip
