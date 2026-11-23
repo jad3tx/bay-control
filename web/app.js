@@ -1,3 +1,4 @@
+// Sections by bay use — all rendered at once (no tabs).
 const LAYOUT = {
   play: [
     "prev_club", "next_club", "putt_toggle"
