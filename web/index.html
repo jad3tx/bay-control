@@ -44,33 +44,59 @@
             <option value="auto">Auto-detect</option>
           </select>
         </label>
+        <p id="healthTip" class="health-tip toolbar-tip"></p>
         <button type="button" class="ghost" id="helpBtn">Help</button>
       </div>
-      <p id="healthTip" class="health-tip"></p>
       <p id="bookmarkHint" class="bookmark-hint hidden"></p>
 
-      <nav class="tabs" role="tablist">
-        <button type="button" class="tab active" data-tab="play">Play</button>
-        <button type="button" class="tab" data-tab="green">Green</button>
-        <button type="button" class="tab" data-tab="cameras">Cameras</button>
-        <button type="button" class="tab" data-tab="round">Round</button>
-        <button type="button" class="tab" data-tab="more">More</button>
-        <button type="button" class="tab" data-tab="trackpad">Trackpad</button>
-      </nav>
+      <div class="board" id="board">
+        <section class="zone zone-play" aria-label="Play">
+          <h2 class="zone-title">Play</h2>
+          <div id="zone-play-buttons" class="pad"></div>
+          <div class="aim-block">
+            <div class="aim-pad">
+              <button type="button" class="up" data-action="aim_up">Aim ↑</button>
+              <button type="button" class="left" data-action="aim_left">←</button>
+              <button type="button" class="mid accent" data-action="reset_aim">Reset</button>
+              <button type="button" class="right" data-action="aim_right">→</button>
+              <button type="button" class="down" data-action="aim_down">Aim ↓</button>
+            </div>
+            <div class="pad pad-tight">
+              <button type="button" data-action="tee_left">Tee ←</button>
+              <button type="button" data-action="tee_right">Tee →</button>
+              <button type="button" class="accent" data-action="mulligan">Mulligan</button>
+            </div>
+          </div>
+        </section>
 
-      <div class="panels">
-        <div class="panel active" id="panel-play" data-group="play"></div>
-        <div class="panel" id="panel-green" data-group="green"></div>
-        <div class="panel" id="panel-cameras" data-group="cameras"></div>
-        <div class="panel" id="panel-round" data-group="round"></div>
-        <div class="panel" id="panel-more" data-group="more"></div>
-        <div class="panel" id="panel-trackpad">
+        <section class="zone zone-green" aria-label="Green">
+          <h2 class="zone-title">Green</h2>
+          <div id="zone-green-buttons" class="pad"></div>
+        </section>
+
+        <section class="zone zone-cameras" aria-label="Cameras">
+          <h2 class="zone-title">Cameras</h2>
+          <div id="zone-cameras-buttons" class="pad"></div>
+        </section>
+
+        <section class="zone zone-round" aria-label="Round">
+          <h2 class="zone-title">Round</h2>
+          <div id="zone-round-buttons" class="pad"></div>
+        </section>
+
+        <section class="zone zone-more" aria-label="More">
+          <h2 class="zone-title">More</h2>
+          <div id="zone-more-buttons" class="pad"></div>
+        </section>
+
+        <section class="zone zone-mouse" aria-label="Mouse">
+          <h2 class="zone-title">Mouse</h2>
           <div class="trackpad" id="trackpad" tabindex="0">
             <span>Drag to move · tap to click</span>
           </div>
           <div class="track-actions">
-            <button type="button" data-mouse="left">Left Click</button>
-            <button type="button" data-mouse="right">Right Click</button>
+            <button type="button" data-mouse="left">Left</button>
+            <button type="button" data-mouse="right">Right</button>
             <button type="button" data-scroll="120">Scroll ↑</button>
             <button type="button" data-scroll="-120">Scroll ↓</button>
           </div>
@@ -78,7 +104,7 @@
             <input id="typeInput" type="text" placeholder="Type into the sim…" />
             <button type="button" id="sendText">Send</button>
           </div>
-        </div>
+        </section>
       </div>
     </section>
   </main>
@@ -93,8 +119,7 @@
       <li>Focus GSPro or Pureplay so controls are armed.</li>
       <li>Share → Add to Home Screen to bookmark this pairing.</li>
     </ol>
-    <p>If taps do nothing, the status chip usually explains why (sim not focused, paused, or offline).</p>
-    <p>Course map streaming is planned for a later release.</p>
+    <p>All controls are on one board — scroll if needed on smaller phones.</p>
     <button type="button" id="closeHelp">Close</button>
   </dialog>
 

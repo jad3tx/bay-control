@@ -210,84 +210,60 @@ function actionMeta(profileId, actionId) {
   return actions[actionId] || null;
 }
 
+function makeActionButton(profileId, actionId) {
+  const meta = actionMeta(profileId, actionId);
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.dataset.action = actionId;
+  btn.textContent = (meta && (meta.label || meta.Label)) || actionId.replaceAll("_", " ");
+  if (!meta) {
+    btn.disabled = true;
+    btn.title = "Not available in this sim profile";
+  }
+  if (ACCENT.has(actionId)) btn.classList.add("accent");
+  if (DANGER.has(actionId)) btn.classList.add("danger");
+  return btn;
+}
+
 function renderAllPads(profileId) {
   state.activeProfileId = profileId;
+
   for (const [group, actions] of Object.entries(LAYOUT)) {
-    const panel = document.getElementById(`panel-${group}`);
-    if (!panel) continue;
-    const pad = document.createElement("div");
-    pad.className = "pad";
-
+    const host = document.getElementById(`zone-${group}-buttons`);
+    if (!host) continue;
+    host.innerHTML = "";
     for (const actionId of actions) {
-      const meta = actionMeta(profileId, actionId);
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.dataset.action = actionId;
-      btn.textContent = meta?.label || actionId.replaceAll("_", " ");
-      if (!meta) {
-        btn.disabled = true;
-        btn.title = "Not available in this sim profile";
-      }
-      if (ACCENT.has(actionId)) btn.classList.add("accent");
-      if (DANGER.has(actionId)) btn.classList.add("danger");
-      if (actionId === "mulligan") btn.classList.add("wide");
-      pad.appendChild(btn);
-    }
-
-    panel.innerHTML = "";
-    panel.appendChild(pad);
-
-    if (group === "play") {
-      const aim = document.createElement("div");
-      aim.className = "aim-block";
-      aim.innerHTML = `
-        <div class="aim-pad">
-          <button type="button" class="up" data-action="aim_up">Aim ↑</button>
-          <button type="button" class="left" data-action="aim_left">←</button>
-          <button type="button" class="mid accent" data-action="reset_aim">Reset</button>
-          <button type="button" class="right" data-action="aim_right">→</button>
-          <button type="button" class="down" data-action="aim_down">Aim ↓</button>
-        </div>
-        <div class="pad">
-          <button type="button" data-action="tee_left">Tee ←</button>
-          <button type="button" data-action="tee_right">Tee →</button>
-          <button type="button" class="accent" data-action="mulligan">Mulligan</button>
-        </div>`;
-      // Disable missing aim actions
-      aim.querySelectorAll("[data-action]").forEach((btn) => {
-        const id = btn.dataset.action;
-        if (!actionMeta(profileId, id)) {
-          btn.disabled = true;
-          btn.title = "Not available in this sim profile";
-        }
-      });
-      panel.appendChild(aim);
+      host.appendChild(makeActionButton(profileId, actionId));
     }
   }
+
+  // Aim / tee / mulligan live in static markup — refresh enabled state + labels.
+  document.querySelectorAll(".aim-block [data-action]").forEach((btn) => {
+    const id = btn.dataset.action;
+    const meta = actionMeta(profileId, id);
+    btn.disabled = !meta;
+    btn.title = meta ? "" : "Not available in this sim profile";
+    if (meta && (meta.label || meta.Label) && !["aim_left", "aim_right", "aim_up", "aim_down"].includes(id)) {
+      // Keep short arrow glyphs for d-pad; refresh text labels for tee/reset/mulligan.
+      if (id === "reset_aim") btn.textContent = "Reset";
+      else if (id === "mulligan") btn.textContent = meta.label || meta.Label || "Mulligan";
+      else if (id === "tee_left") btn.textContent = "Tee ←";
+      else if (id === "tee_right") btn.textContent = "Tee →";
+    }
+  });
 }
 
 function bindUi() {
-  document.querySelectorAll(".tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t === tab));
-      document.querySelectorAll(".panel").forEach((p) => {
-        p.classList.toggle("active", p.id === `panel-${tab.dataset.tab}`);
-      });
-    });
-  });
-
-  document.querySelector(".panels").addEventListener("click", (ev) => {
+  document.getElementById("board").addEventListener("click", (ev) => {
     const btn = ev.target.closest("[data-action]");
     if (!btn || btn.disabled) return;
     ev.preventDefault();
     btn.classList.add("pressed");
     setTimeout(() => btn.classList.remove("pressed"), 120);
-    // Blur so a following Space/Enter (or SendInput landing here) does not re-fire the button.
     btn.blur();
     send({ type: "action", action: btn.dataset.action });
   });
 
-  // Stop Space/Enter from activating the focused control button in the browser.
   document.addEventListener("keydown", (ev) => {
     if ((ev.key === " " || ev.key === "Enter") && ev.target instanceof HTMLButtonElement && ev.target.dataset.action) {
       ev.preventDefault();

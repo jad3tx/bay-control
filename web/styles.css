@@ -1,10 +1,6 @@
 :root {
   --bg-deep: #0b1f15;
-  --bg-mid: #143524;
   --fairway: #1f5a38;
-  --fairway-light: #2f7a4a;
-  --sand: #c9b896;
-  --mist: #dce8d8;
   --ink: #eef6ea;
   --muted: #a7c4b0;
   --accent: #f0c75e;
@@ -13,8 +9,8 @@
   --panel: rgba(10, 28, 18, 0.55);
   --stroke: rgba(220, 232, 216, 0.14);
   --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-  --radius: 18px;
-  --tap: 52px;
+  --radius: 16px;
+  --tap: 48px;
   --font-display: "Fraunces", Georgia, serif;
   --font-ui: "DM Sans", "Segoe UI", sans-serif;
 }
@@ -54,42 +50,31 @@ body {
   z-index: -1;
 }
 
-.fairway::before {
-  content: "";
-  position: absolute;
-  inset: 8% -10% auto;
-  height: 42%;
-  background:
-    radial-gradient(ellipse at 20% 40%, rgba(201, 184, 150, 0.18), transparent 40%),
-    radial-gradient(ellipse at 80% 50%, rgba(201, 184, 150, 0.12), transparent 35%);
-  filter: blur(2px);
-}
-
 .top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 20px 8px;
+  padding: 12px 16px 4px;
   gap: 12px;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .brand h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  font-size: clamp(1.35rem, 3vw, 1.9rem);
   letter-spacing: -0.02em;
   font-weight: 700;
 }
 
 .mark {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background:
     radial-gradient(circle at 35% 30%, #f7f4ea 0 28%, transparent 29%),
@@ -98,9 +83,9 @@ body {
 }
 
 .status {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 8px 12px;
+  padding: 7px 11px;
   border-radius: 999px;
   background: rgba(125, 206, 160, 0.12);
   border: 1px solid rgba(125, 206, 160, 0.35);
@@ -123,8 +108,8 @@ body {
 }
 
 main {
-  padding: 8px 16px 28px;
-  max-width: 980px;
+  padding: 4px 12px 20px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -164,110 +149,134 @@ main {
   text-align: center;
 }
 
-#pinForm button, .keyboard-sheet button, .track-actions button, .pad button, .ghost, dialog button {
-  height: var(--tap);
+#pinForm button,
+.keyboard-sheet button,
+.track-actions button,
+.pad button,
+.ghost,
+dialog button {
+  min-height: var(--tap);
   border: 0;
-  border-radius: 14px;
+  border-radius: 12px;
   background: linear-gradient(180deg, #3b8f58, #2a6b42);
   color: white;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.92rem;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
-#pinForm button:active, .pad button:active, .track-actions button:active {
+#pinForm button:active,
+.pad button:active,
+.track-actions button:active,
+.aim-pad button:active {
   transform: translateY(1px) scale(0.98);
 }
 
 .hint { color: var(--danger); min-height: 1.2em; }
 
 .health-tip, .bookmark-hint {
-  margin: 0 0 12px;
+  margin: 0;
   color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.35;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+
+.toolbar-tip {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .bookmark-hint {
   color: var(--accent);
+  margin: 0 0 8px;
 }
 
 .toolbar {
   display: flex;
   justify-content: space-between;
-  align-items: end;
-  gap: 12px;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .profile {
   display: grid;
-  gap: 6px;
-  font-size: 0.75rem;
+  gap: 4px;
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted);
 }
 
 .profile select {
-  height: 42px;
-  border-radius: 12px;
+  height: 38px;
+  border-radius: 10px;
   border: 1px solid var(--stroke);
   background: rgba(0, 0, 0, 0.28);
   color: var(--ink);
-  padding: 0 12px;
-  min-width: 160px;
+  padding: 0 10px;
+  min-width: 140px;
 }
 
 .ghost {
   background: transparent;
   border: 1px solid var(--stroke) !important;
   box-shadow: none;
-  height: 42px;
-  padding: 0 16px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 14px;
 }
 
-.tabs {
+/* —— All-controls board —— */
+.board {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
-  margin-bottom: 14px;
+  gap: 10px;
+  grid-template-columns: 1fr;
 }
 
-.tab {
-  height: 44px;
-  border-radius: 12px;
+.zone {
+  background: var(--panel);
   border: 1px solid var(--stroke);
-  background: rgba(0, 0, 0, 0.2);
-  color: var(--muted);
+  border-radius: var(--radius);
+  padding: 10px;
+  backdrop-filter: blur(8px);
+}
+
+.zone-title {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 0.78rem;
-  cursor: pointer;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
-
-.tab.active {
-  color: var(--bg-deep);
-  background: linear-gradient(180deg, #f0c75e, #d7ad45);
-  border-color: transparent;
-}
-
-.panel { display: none; }
-.panel.active { display: block; }
 
 .pad {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
+}
+
+.pad-tight {
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+}
+
+.pad-tight .accent {
+  grid-column: 1 / -1;
 }
 
 .pad button {
   min-height: var(--tap);
-  padding: 10px 8px;
+  padding: 8px 6px;
   display: grid;
   place-content: center;
   text-align: center;
-  line-height: 1.15;
+  line-height: 1.1;
   background: linear-gradient(180deg, rgba(47, 122, 74, 0.95), rgba(24, 72, 45, 0.95));
   border: 1px solid rgba(220, 232, 216, 0.12);
 }
@@ -280,16 +289,17 @@ main {
 .pad button.danger {
   background: linear-gradient(180deg, #e07a5f, #b8523d);
 }
-.pad button:disabled {
+.pad button:disabled,
+.aim-pad button:disabled {
   opacity: 0.35;
   filter: grayscale(0.4);
 }
 
 .aim-block {
-  margin-top: 14px;
+  margin-top: 10px;
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .aim-pad {
@@ -298,7 +308,29 @@ main {
     ". up ."
     "left mid right"
     ". down .";
-  gap: 8px;
+  gap: 6px;
+}
+
+.aim-pad button {
+  min-height: var(--tap);
+  padding: 8px 6px;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  line-height: 1.1;
+  background: linear-gradient(180deg, rgba(47, 122, 74, 0.95), rgba(24, 72, 45, 0.95));
+  border: 1px solid rgba(220, 232, 216, 0.12);
+  color: white;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+}
+
+.aim-pad button.accent,
+.aim-pad button.mid {
+  background: linear-gradient(180deg, #f0c75e, #c9962f);
+  color: #1a2a18;
 }
 
 .aim-pad .up { grid-area: up; }
@@ -308,8 +340,8 @@ main {
 .aim-pad .mid { grid-area: mid; }
 
 .trackpad {
-  height: min(42vh, 320px);
-  border-radius: 22px;
+  height: 140px;
+  border-radius: 16px;
   border: 1px solid var(--stroke);
   background:
     linear-gradient(160deg, rgba(47, 122, 74, 0.25), rgba(10, 28, 18, 0.8)),
@@ -319,42 +351,42 @@ main {
   color: var(--muted);
   user-select: none;
   touch-action: none;
-  box-shadow: var(--shadow);
 }
 
 .track-actions {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .track-actions button {
-  font-size: 0.85rem;
-  height: 48px;
+  font-size: 0.8rem;
+  height: 42px;
+  min-height: 42px;
 }
 
 .keyboard-sheet {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .keyboard-sheet input {
-  height: 52px;
-  border-radius: 14px;
+  height: 42px;
+  border-radius: 12px;
   border: 1px solid var(--stroke);
   background: rgba(0, 0, 0, 0.28);
   color: var(--ink);
-  padding: 0 14px;
-  font-size: 1rem;
+  padding: 0 12px;
+  font-size: 0.95rem;
 }
 
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 22px;
+  bottom: 18px;
   transform: translateX(-50%);
   background: rgba(8, 20, 14, 0.92);
   border: 1px solid var(--stroke);
@@ -380,23 +412,101 @@ dialog h2 { font-family: var(--font-display); margin-top: 0; }
 dialog ol { color: var(--muted); padding-left: 1.2rem; }
 dialog button { width: 100%; margin-top: 12px; }
 
-@media (max-width: 720px) {
-  .tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+/* Phone portrait: still all visible, stacked, scrollable */
+@media (max-width: 719px) {
   .aim-block {
     grid-template-columns: 1fr;
   }
   .track-actions {
     grid-template-columns: repeat(2, 1fr);
   }
+  .pad {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
-@media (orientation: landscape) and (min-width: 800px) {
-  .pad {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+/* Tablet / landscape web: everything on one board */
+@media (min-width: 720px) {
+  :root { --tap: 46px; }
+
+  .board {
+    grid-template-columns: 1.15fr 1fr 1fr;
+    grid-template-areas:
+      "play green cameras"
+      "play round more"
+      "mouse mouse mouse";
+    gap: 10px;
+    align-items: start;
   }
-  main { padding-top: 4px; }
+
+  .zone-play { grid-area: play; }
+  .zone-green { grid-area: green; }
+  .zone-cameras { grid-area: cameras; }
+  .zone-round { grid-area: round; }
+  .zone-more { grid-area: more; }
+  .zone-mouse { grid-area: mouse; }
+
+  .zone-play .pad {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .zone-green .pad,
+  .zone-cameras .pad,
+  .zone-round .pad,
+  .zone-more .pad {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .zone-mouse {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 8px 12px;
+  }
+
+  .zone-mouse .zone-title {
+    grid-column: 1 / -1;
+  }
+
+  .zone-mouse .trackpad {
+    height: 120px;
+    grid-row: 2 / 4;
+  }
+
+  .zone-mouse .track-actions {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 1100px) {
+  .board {
+    grid-template-columns: 1.2fr 1fr 1fr 1.1fr;
+    grid-template-areas:
+      "play green cameras mouse"
+      "play round more mouse";
+  }
+
+  .zone-mouse {
+    grid-template-columns: 1fr;
+  }
+
+  .zone-mouse .trackpad {
+    height: 180px;
+    grid-row: auto;
+  }
+
+  .zone-more .pad {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-height: 900px) {
+  .top { padding-top: 6px; padding-bottom: 0; }
+  .brand h1 { font-size: 1.25rem; }
+  .zone { padding: 8px; }
+  .zone-title { margin-bottom: 6px; }
+  :root { --tap: 42px; }
+  .trackpad { height: 100px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
