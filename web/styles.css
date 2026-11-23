@@ -182,6 +182,17 @@ main {
 
 .hint { color: var(--danger); min-height: 1.2em; }
 
+.health-tip, .bookmark-hint {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.bookmark-hint {
+  color: var(--accent);
+}
+
 .toolbar {
   display: flex;
   justify-content: space-between;

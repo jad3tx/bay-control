@@ -1,0 +1,15 @@
+Bay Control — Install (2 minutes)
+================================
+
+1. Extract this zip anywhere (example: C:\BayControl).
+2. Double-click Install-BayControl.ps1
+   - Or right-click → Run with PowerShell
+   - Approves Start Menu shortcut, optional firewall rule, Start with Windows
+3. Or skip the script and just run BayControl.exe
+4. Allow Windows Firewall for private networks if prompted (port 8787).
+5. On your phone/tablet: join the SAME Wi-Fi as the sim PC (not Guest).
+6. Scan the QR code on the Bay Control window.
+7. Focus GSPro or Pureplay, then use the controls from the mat.
+
+Help: https://github.com/jad3tx/bay-control/blob/main/docs/install.md
+Troubleshoot: https://github.com/jad3tx/bay-control/blob/main/docs/troubleshoot.md

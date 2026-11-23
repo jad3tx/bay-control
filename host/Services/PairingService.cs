@@ -8,15 +8,30 @@ namespace BayControl.Host.Services;
 
 public sealed class PairingService
 {
-    public int Port { get; }
-    public string Pin { get; }
-    public string Token { get; }
+    public int Port { get; private set; }
+    public string Pin { get; private set; }
+    public string Token { get; private set; }
 
-    public PairingService(int port = 8787)
+    public event Action? Changed;
+
+    public PairingService(int port, string? pin = null, string? token = null)
     {
-        Port = port;
+        Port = port > 0 ? port : 8787;
+        Pin = string.IsNullOrWhiteSpace(pin)
+            ? RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6")
+            : pin.Trim();
+        Token = string.IsNullOrWhiteSpace(token)
+            ? Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant()
+            : token.Trim().ToLowerInvariant();
+    }
+
+    public void SetPortForNextLaunch(int port) => Port = port;
+
+    public void RegenerateSecrets()
+    {
         Pin = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
         Token = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+        Changed?.Invoke();
     }
 
     public string GetLanIp()
@@ -54,10 +69,10 @@ public sealed class PairingService
         return "127.0.0.1";
     }
 
-    public string GetControllerUrl()
-    {
-        return $"http://{GetLanIp()}:{Port}/?t={Token}";
-    }
+    public string GetControllerUrl() => $"http://{GetLanIp()}:{Port}/?t={Token}";
+
+    public string GetBookmarkHint() =>
+        "After connecting, use Share → Add to Home Screen. The QR link already includes your pairing token.";
 
     public bool ValidateToken(string? token) =>
         !string.IsNullOrWhiteSpace(token) &&

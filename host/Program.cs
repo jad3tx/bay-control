@@ -24,7 +24,19 @@ internal static class Program
         var webRoot = ResolvePath(baseDir, "wwwroot", Path.Combine(baseDir, "..", "..", "..", "..", "web"));
         var profilesDir = ResolvePath(baseDir, "profiles", Path.Combine(baseDir, "..", "..", "..", "..", "profiles"));
 
-        var pairing = new PairingService(GetPort(args));
+        var settings = new SettingsService();
+        var port = GetPort(args) ?? settings.Current.Port;
+        if (port <= 0)
+        {
+            port = 8787;
+        }
+
+        var pairing = new PairingService(port, settings.Current.Pin, settings.Current.Token);
+        settings.Current.Port = pairing.Port;
+        settings.Current.Pin = pairing.Pin;
+        settings.Current.Token = pairing.Token;
+        settings.Save();
+
         var profiles = new ProfileService();
         profiles.LoadFromDirectory(profilesDir);
 
@@ -34,14 +46,16 @@ internal static class Program
         var router = new CommandRouter(focus, profiles, input, state);
         var hub = new WebSocketHub(state, router);
 
-        // Enable autostart by default on first run.
-        if (!AutostartService.IsEnabled())
+        if (settings.Current.AutostartEnabled && !AutostartService.IsEnabled())
         {
             AutostartService.SetEnabled(true);
         }
+        else if (!settings.Current.AutostartEnabled && AutostartService.IsEnabled())
+        {
+            AutostartService.SetEnabled(false);
+        }
 
         using var cts = new CancellationTokenSource();
-        DashboardForm? dashboard = null;
 
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -57,6 +71,7 @@ internal static class Program
             options.Listen(IPAddress.Any, pairing.Port);
         });
 
+        builder.Services.AddSingleton(settings);
         builder.Services.AddSingleton(pairing);
         builder.Services.AddSingleton(profiles);
         builder.Services.AddSingleton(state);
@@ -73,12 +88,18 @@ internal static class Program
             FileProvider = new PhysicalFileProvider(webRoot)
         });
 
-        app.MapGet("/api/health", () => Results.Json(new { status = "ok", product = "Bay Control" }));
+        app.MapGet("/api/health", () => Results.Json(new
+        {
+            status = "ok",
+            product = "Bay Control",
+            hint = "If you can see this from your phone, the network path is good."
+        }));
         app.MapGet("/api/pairing", (PairingService p) => Results.Json(new
         {
             url = p.GetControllerUrl(),
             port = p.Port,
-            lanIp = p.GetLanIp()
+            lanIp = p.GetLanIp(),
+            bookmarkHint = p.GetBookmarkHint()
         }));
         app.MapGet("/api/qr.png", (PairingService p) => Results.File(p.CreateQrPng(), "image/png"));
         app.MapGet("/api/status", (CommandRouter r) => Results.Json(r.BuildStatusPayload()));
@@ -98,7 +119,7 @@ internal static class Program
             var ok = p.ValidatePin(pin) || p.ValidateToken(token);
             return ok
                 ? Results.Json(new { ok = true, token = p.Token })
-                : Results.Json(new { ok = false }, statusCode: StatusCodes.Status401Unauthorized);
+                : Results.Json(new { ok = false, error = "invalid_pin_or_token" }, statusCode: StatusCodes.Status401Unauthorized);
         });
 
         app.Map("/ws", async (HttpContext ctx, PairingService p, WebSocketHub h) =>
@@ -115,7 +136,6 @@ internal static class Program
             await h.HandleAsync(ctx);
         });
 
-        // Fallback to index for SPA-ish routing.
         app.MapFallbackToFile("index.html", new StaticFileOptions
         {
             FileProvider = new PhysicalFileProvider(webRoot)
@@ -123,13 +143,18 @@ internal static class Program
 
         var webTask = app.RunAsync(cts.Token);
 
-        dashboard = new DashboardForm(pairing, state, () =>
+        if (!settings.Current.FirstRunCompleted)
+        {
+            using var wizard = new FirstRunWizardForm(pairing, settings);
+            wizard.ShowDialog();
+        }
+
+        var dashboard = new DashboardForm(pairing, state, settings, profiles, input, profilesDir, () =>
         {
             cts.Cancel();
             Application.Exit();
         });
 
-        // Status broadcaster
         var broadcastTimer = new System.Windows.Forms.Timer { Interval = 1500 };
         broadcastTimer.Tick += async (_, _) =>
         {
@@ -165,7 +190,7 @@ internal static class Program
         return preferred;
     }
 
-    private static int GetPort(string[] args)
+    private static int? GetPort(string[] args)
     {
         for (var i = 0; i < args.Length - 1; i++)
         {
@@ -175,7 +200,6 @@ internal static class Program
             }
         }
 
-        return 8787;
+        return null;
     }
-
 }

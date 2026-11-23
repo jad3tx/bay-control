@@ -28,6 +28,9 @@ jobs:
           dotnet publish host/BayControl.Host.csproj -c Release -r win-x64
           --self-contained true -p:PublishSingleFile=true
           -o artifacts/BayControl
+      - name: Stage install helpers
+        run: |
+          Copy-Item INSTALL.txt, Install-BayControl.ps1 artifacts/BayControl/ -Force
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -35,10 +38,20 @@ jobs:
           path: artifacts/BayControl
       - name: Zip release
         if: startsWith(github.ref, 'refs/tags/')
-        run: Compress-Archive -Path artifacts/BayControl/* -DestinationPath BayControl-win-x64.zip
+        run: |
+          $ver = "${{ github.ref_name }}"
+          Compress-Archive -Path artifacts/BayControl/* -DestinationPath "BayControl-${ver}-win-x64.zip"
       - name: GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: BayControl-win-x64.zip
+          files: BayControl-${{ github.ref_name }}-win-x64.zip
           generate_release_notes: true
+          body: |
+            ## Install
+            1. Download **BayControl-${{ github.ref_name }}-win-x64.zip**
+            2. Extract, run `Install-BayControl.ps1` (or `BayControl.exe`)
+            3. Allow Firewall / use **Add firewall rule** in the dashboard
+            4. Phone on the **same Wi‑Fi** → scan QR → focus GSPro or Pureplay
+
+            See [docs/install.md](https://github.com/jad3tx/bay-control/blob/main/docs/install.md) and [docs/troubleshoot.md](https://github.com/jad3tx/bay-control/blob/main/docs/troubleshoot.md).

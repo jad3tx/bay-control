@@ -4,6 +4,15 @@ Open-source local Wi‑Fi remote for **GSPro** and **Pureplay**. Run a small hos
 
 No App Store install. Scan the QR code and play from the mat.
 
+## Install (recommended)
+
+1. Download **[BayControl-win-x64.zip](https://github.com/jad3tx/bay-control/releases/latest)** from the latest release.
+2. Extract it, then run **`Install-BayControl.ps1`** (or just `BayControl.exe`).
+3. Allow Firewall if prompted (or use **Add firewall rule** in the dashboard).
+4. Phone/tablet on the **same Wi‑Fi** → scan the QR → focus GSPro/Pureplay.
+
+Full walkthrough: [docs/install.md](docs/install.md) · Problems: [docs/troubleshoot.md](docs/troubleshoot.md)
+
 ## Features (v1)
 
 - Labeled controls for club, aim, mulligan, heat map, flyover, shot cam, scorecard, and more
@@ -11,7 +20,8 @@ No App Store install. Scan the QR code and play from the mat.
 - GSPro + Pureplay profiles with auto-detect (or manual override)
 - Focus safety: inputs only fire when the sim is the foreground window
 - Multi-device: several phones/tablets can connect to one bay
-- Autostart with Windows, system tray dashboard, PIN + QR pairing
+- Autostart with Windows, tray dashboard, PIN + QR pairing, firewall helper
+- First-run setup tips and action test from the PC
 - Golf-themed responsive UI (phone & tablet, portrait & landscape)
 
 ## Architecture
@@ -24,48 +34,31 @@ Host  --SendInput-->  GSPro or Pureplay (when focused)
 
 Everything stays on your home LAN. GitHub is only for source and releases.
 
-## Quick start
+## Configure
 
-### Requirements
+From the Bay Control dashboard / tray:
 
-- Windows 11 sim PC
-- .NET 8 runtime (or use the published self-contained build)
-- Phone/tablet on the **same Wi‑Fi** as the sim PC
+| Control | What it does |
+|---------|----------------|
+| Start with Windows | Autostart (on by default; uncheck to disable) |
+| Pause remote input | Blocks all phone/tablet input |
+| Add firewall rule | Elevates once to allow TCP port inbound |
+| Open profiles folder | Edit `gspro.json` / `pureplay.json` |
+| Regenerate PIN/QR | New pairing secrets (phones must reconnect) |
+| Port | Saved for next launch (restart required) |
+| Test action | Fires a shortcut on the PC to verify mappings |
+| Open on this PC | Opens the controller in your local browser |
 
-### Run from source
+Profiles: [`profiles/`](profiles/). Keep action IDs stable when editing keys.
 
-```powershell
-cd host
-dotnet run
-```
+## Develop
 
-1. Allow the Windows Firewall prompt for port **8787** if asked.
-2. Scan the QR code on the Bay Control window (or open the URL shown).
-3. Enter the 6-digit PIN if the QR token is not in the link.
-4. Focus GSPro or Pureplay and use the controller.
-
-### Publish a portable build
-
-```powershell
-dotnet publish host/BayControl.Host.csproj -c Release -r win-x64 --self-contained true -o artifacts/BayControl
-```
-
-Zip `artifacts/BayControl` and run `BayControl.exe` on the sim PC.
-
-## Profiles
-
-JSON profiles live in [`profiles/`](profiles/):
-
-- `gspro.json` — GSPro keyboard mappings
-- `pureplay.json` — Pureplay mappings (seeded to match common GSPro-like shortcuts; edit as needed)
-
-Edit keys without rebuilding. Restart the host after changes. Action IDs are shared so the UI layout stays stable across sims.
-
-## Development
+Requirements: Windows 11, [.NET 8 SDK](https://dotnet.microsoft.com/download).
 
 ```powershell
-dotnet build
+dotnet run --project host
 dotnet test
+dotnet publish host/BayControl.Host.csproj -c Release -r win-x64 --self-contained true -o artifacts/BayControl
 ```
 
 ### Layout
@@ -73,10 +66,11 @@ dotnet test
 | Path | Purpose |
 |------|---------|
 | `host/` | Windows tray host, Kestrel, WebSocket, input, focus guard |
-| `web/` | Controller UI (static HTML/CSS/JS PWA; no build step) |
+| `web/` | Controller UI (static HTML/CSS/JS) |
 | `profiles/` | Sim action → key maps |
-| `docs/` | Extra docs |
+| `docs/` | Install, troubleshoot, contributing |
 | `tests/` | Unit tests |
+| `Install-BayControl.ps1` | Optional setup helper shipped in the release zip |
 
 ## Security notes
 

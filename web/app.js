@@ -94,12 +94,17 @@ function connectWs() {
   const ws = new WebSocket(`${proto}://${location.host}/ws?${q}`);
   state.ws = ws;
 
-  ws.addEventListener("open", () => setStatus("Connected", "ok"));
+  ws.addEventListener("open", () => setStatus("Reachable — waiting for sim focus…", "warn"));
   ws.addEventListener("close", () => {
-    setStatus("Offline — reconnecting…", "err");
+    setStatus("Offline — wrong network or PC asleep?", "err");
+    const tipEl = document.getElementById("healthTip");
+    if (tipEl) {
+      tipEl.textContent = "Use the same Wi‑Fi as the sim PC (not Guest). Check firewall on the PC.";
+      tipEl.classList.remove("hidden");
+    }
     scheduleReconnect();
   });
-  ws.addEventListener("error", () => setStatus("Connection error", "err"));
+  ws.addEventListener("error", () => setStatus("Connection error — check Wi‑Fi / firewall", "err"));
   ws.addEventListener("message", (ev) => {
     try {
       const msg = JSON.parse(ev.data);
@@ -131,9 +136,31 @@ function send(payload) {
   state.ws.send(JSON.stringify(payload));
 }
 
+function healthKind(code) {
+  if (code === "controlling") return "ok";
+  if (code === "sim_not_focused" || code === "remote_paused") return "warn";
+  return "err";
+}
+
 function applyStatus(msg) {
-  const kind = msg.remotePaused || !msg.simFocused ? "warn" : "ok";
+  const kind = healthKind(msg.healthCode) || (msg.remotePaused || !msg.simFocused ? "warn" : "ok");
   setStatus(msg.statusText || "Ready", kind);
+  if (msg.tip) {
+    els.statusChip.title = msg.tip;
+  }
+
+  const tipEl = document.getElementById("healthTip");
+  if (tipEl) {
+    tipEl.textContent = msg.tip || "";
+    tipEl.classList.toggle("hidden", !msg.tip);
+  }
+
+  const bookmarkEl = document.getElementById("bookmarkHint");
+  if (bookmarkEl && msg.bookmarkHint && !bookmarkEl.dataset.shown) {
+    bookmarkEl.textContent = msg.bookmarkHint;
+    bookmarkEl.classList.remove("hidden");
+    bookmarkEl.dataset.shown = "1";
+  }
 
   if (Array.isArray(msg.profiles)) {
     state.profiles = Object.fromEntries(msg.profiles.map((p) => [p.id, p]));

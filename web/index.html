@@ -46,6 +46,8 @@
         </label>
         <button type="button" class="ghost" id="helpBtn">Help</button>
       </div>
+      <p id="healthTip" class="health-tip"></p>
+      <p id="bookmarkHint" class="bookmark-hint hidden"></p>
 
       <nav class="tabs" role="tablist">
         <button type="button" class="tab active" data-tab="play">Play</button>
@@ -87,10 +89,11 @@
     <h2>Setup</h2>
     <ol>
       <li>Keep Bay Control running on the sim PC.</li>
-      <li>Phone/tablet must be on the same Wi‑Fi.</li>
+      <li>Phone/tablet must be on the same Wi‑Fi (not Guest).</li>
       <li>Focus GSPro or Pureplay so controls are armed.</li>
-      <li>On iOS/Android: Share → Add to Home Screen for full-screen use.</li>
+      <li>Share → Add to Home Screen to bookmark this pairing.</li>
     </ol>
+    <p>If taps do nothing, the status chip usually explains why (sim not focused, paused, or offline).</p>
     <p>Course map streaming is planned for a later release.</p>
     <button type="button" id="closeHelp">Close</button>
   </dialog>

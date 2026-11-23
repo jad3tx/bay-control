@@ -50,18 +50,22 @@ public sealed class CommandRouter(
     public object BuildStatusPayload()
     {
         var focusState = focus.GetState();
+        var (healthCode, statusText, tip) = ResolveHealth(focusState);
         return new
         {
             type = "status",
             connectedClients = state.ConnectedClients,
             remotePaused = state.RemotePaused,
             simFocused = focusState.IsSimFocused,
-            statusText = state.RemotePaused ? "Remote paused from tray" : focusState.StatusText,
+            healthCode,
+            statusText,
+            tip,
             processName = focusState.ProcessName,
             windowTitle = focusState.WindowTitle,
             activeProfileId = focusState.Profile?.Id,
             activeProfileName = focusState.Profile?.DisplayName,
             manualOverrideId = profiles.ManualOverrideId,
+            bookmarkHint = "Connected. Use Share → Add to Home Screen to keep this pairing on your home screen.",
             profiles = profiles.Profiles.Values.Select(p => new
             {
                 p.Id,
@@ -71,6 +75,24 @@ public sealed class CommandRouter(
                     kv => new { kv.Value.Label, kv.Value.Group, keys = kv.Value.Keys })
             })
         };
+    }
+
+    private (string healthCode, string statusText, string tip) ResolveHealth(FocusState focusState)
+    {
+        if (state.RemotePaused)
+        {
+            return ("remote_paused", "Remote paused from tray",
+                "Uncheck Pause remote input on the PC dashboard.");
+        }
+
+        if (!focusState.IsSimFocused)
+        {
+            return ("sim_not_focused", "Paused — sim not focused",
+                "Click the GSPro or Pureplay window so it is in front, then try again.");
+        }
+
+        return ("controlling", focusState.StatusText,
+            "Reachable and armed. Taps go to the focused sim.");
     }
 
     private CommandResult HandleAction(string? actionId)

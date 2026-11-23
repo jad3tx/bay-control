@@ -10,7 +10,7 @@
     <AssemblyName>BayControl</AssemblyName>
     <RootNamespace>BayControl.Host</RootNamespace>
     <Product>Bay Control</Product>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
@@ -29,6 +29,8 @@
     <Content Include="..\web\styles.css" Link="wwwroot\styles.css" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\web\styles.css')" />
     <Content Include="..\web\manifest.webmanifest" Link="wwwroot\manifest.webmanifest" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\web\manifest.webmanifest')" />
     <Content Include="..\web\icon.svg" Link="wwwroot\icon.svg" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\web\icon.svg')" />
+    <Content Include="..\INSTALL.txt" Link="INSTALL.txt" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\INSTALL.txt')" />
+    <Content Include="..\Install-BayControl.ps1" Link="Install-BayControl.ps1" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\Install-BayControl.ps1')" />
   </ItemGroup>
 
   <!-- Exclude leftover WPF template files if present -->
