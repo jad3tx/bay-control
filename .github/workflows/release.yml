@@ -6,6 +6,9 @@ on:
     tags: ["v*"]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   build-test:
     runs-on: windows-latest
@@ -38,3 +41,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: BayControl-win-x64.zip
+          generate_release_notes: true
