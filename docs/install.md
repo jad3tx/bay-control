@@ -26,8 +26,10 @@ Bay Control can save **±3 second** clips around each shot from up to two USB we
 If the sim PC has **Git** and the **.NET 8 SDK**, you can pull and rebuild in place:
 
 ```powershell
-irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.ps1 | iex
+irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.bootstrap.ps1 | iex
 ```
+
+(Do not `| iex` the main `Update-BayControl.ps1` — its `param()` block fails under Invoke-Expression.)
 
 Or from a clone: `.\tools\Update-BayControl.ps1` (optional `-Tag v1.3.0`, `-SkipPull`). App install path: `%LOCALAPPDATA%\BayControl\app`.
 

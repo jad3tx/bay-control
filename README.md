@@ -71,8 +71,8 @@ Cut a GitHub release (commits if needed, tags from the csproj `<Version>`, pushe
 Redeploy on the **sim PC** (needs Git + .NET 8 SDK). Clones/pulls, publishes, replaces the install, restarts:
 
 ```powershell
-# After this script is on GitHub (main):
-irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.ps1 | iex
+# On the sim PC (do not pipe the main script into iex — use the bootstrap):
+irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.bootstrap.ps1 | iex
 
 # Or from a local clone on that PC:
 .\tools\Update-BayControl.ps1

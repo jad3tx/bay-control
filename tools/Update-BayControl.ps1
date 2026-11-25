@@ -4,9 +4,13 @@
   On the sim PC: clone or pull Bay Control, publish a self-contained build, replace the install, restart.
 
 .DESCRIPTION
-  Typical host workflow (after .NET 8 SDK + Git are installed):
+  Do NOT pipe this script into iex — param() blocks break under Invoke-Expression.
 
-    irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.ps1 | iex
+  Typical host one-liner (after .NET 8 SDK + Git are installed):
+
+    $f = "$env:TEMP\Update-BayControl.ps1"
+    irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.ps1 -OutFile $f
+    powershell -NoProfile -ExecutionPolicy Bypass -File $f
 
   Or from an existing clone:
 
