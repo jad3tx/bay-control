@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Bay Control green icon">
+  <rect width="128" height="128" rx="28" fill="#0f2a1c"/>
+  <ellipse cx="64" cy="72" rx="46" ry="34" fill="#1f5a38"/>
+  <ellipse cx="64" cy="72" rx="32" ry="22" fill="#2f7a4a"/>
+  <ellipse cx="64" cy="72" rx="16" ry="11" fill="#3b8f58"/>
+  <circle cx="70" cy="68" r="7" fill="#f3f7f0" stroke="#c5d4c0" stroke-width="1"/>
+  <path d="M58 40v28" stroke="#e8f2e4" stroke-width="5" stroke-linecap="round"/>
+  <path d="M58 40h22l-6 9 6 9H58V40z" fill="#f3f7f0"/>
+  <circle cx="64" cy="72" r="48" fill="none" stroke="#f0c75e" stroke-width="2.5" opacity="0.85"/>
+</svg>

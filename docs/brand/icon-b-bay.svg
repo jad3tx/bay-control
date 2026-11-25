@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Bay Control bay arch icon">
+  <rect width="128" height="128" rx="28" fill="#0f2a1c"/>
+  <!-- B / bay opening -->
+  <path d="M34 24h30c18 0 32 12 32 28 0 10-5 18-14 23 12 5 20 15 20 29 0 18-16 30-36 30H34V24z"
+        fill="none" stroke="#2f7a4a" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M50 40v48c0 0 8 8 20 8 12 0 20-8 20-18s-8-18-20-18H50z" fill="#143524"/>
+  <circle cx="72" cy="78" r="12" fill="#e8f2e4"/>
+  <circle cx="72" cy="78" r="5" fill="#f3f7f0"/>
+  <path d="M72 48v22" stroke="#e8f2e4" stroke-width="4" stroke-linecap="round"/>
+  <path d="M28 100c20-18 52-18 72 0" fill="none" stroke="#f0c75e" stroke-width="3" stroke-linecap="round"/>
+</svg>
