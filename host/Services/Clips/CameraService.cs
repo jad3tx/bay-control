@@ -17,28 +17,36 @@ public sealed class CameraService : IDisposable
 
     public IReadOnlyList<VideoDeviceInfo> EnumerateDevices()
     {
+        HashSet<int> activeIndices;
+        lock (_gate)
+        {
+            activeIndices = _sessions.Values
+                .Select(s => int.TryParse(s.DeviceId, out var idx) ? idx : -1)
+                .Where(idx => idx >= 0)
+                .ToHashSet();
+        }
+
         var list = new List<VideoDeviceInfo>();
-        // Probe indices 0..7 — DirectShow naming via OpenCV is limited; use "Camera N".
+        // Probe indices 0..7 — avoid reopening indices already held by an active session.
         for (var i = 0; i < 8; i++)
         {
+            if (activeIndices.Contains(i))
+            {
+                list.Add(new VideoDeviceInfo(Id: i.ToString(), Name: $"Camera {i}", Index: i));
+                continue;
+            }
+
             try
             {
                 using var cap = new VideoCapture(i, VideoCaptureAPIs.DSHOW);
                 if (!cap.IsOpened())
                 {
-                    cap.Open(i);
+                    cap.Open(i, VideoCaptureAPIs.MSMF);
                 }
 
                 if (!cap.IsOpened())
                 {
                     continue;
-                }
-
-                using var frame = new Mat();
-                var ok = cap.Read(frame);
-                if (!ok || frame.Empty())
-                {
-                    // Still list it — some cams need warm-up.
                 }
 
                 list.Add(new VideoDeviceInfo(Id: i.ToString(), Name: $"Camera {i}", Index: i));
@@ -113,12 +121,14 @@ public sealed class CameraService : IDisposable
                 return "no cameras selected";
             }
 
+            var now = DateTimeOffset.UtcNow;
             var parts = _sessions.Values.Select(s =>
             {
                 var name = CameraRoles.DisplayName(s.Role);
-                if (s.IsRunning)
+                if (s.IsRunning && s.FramesCaptured > 0)
                 {
-                    return $"{name}✓";
+                    var ageSec = s.LastFrameUtc.HasValue ? (now - s.LastFrameUtc.Value).TotalSeconds : 99;
+                    return ageSec < 3.0 ? $"{name}✓" : $"{name} (stalled)";
                 }
 
                 return string.IsNullOrEmpty(s.LastError) ? $"{name}…" : $"{name}✗";

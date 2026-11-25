@@ -89,7 +89,8 @@ public sealed class ClipPipeline
                     cameraRole = session.Role,
                     error = "camera_busy"
                 });
-                _state.LogAction($"clip.fail:{session.Role}:few_frames");
+                _state.LogAction(
+                    $"clip.fail:{session.Role}:few_frames(got={frames.Count},total={session.FramesCaptured},err={session.LastError ?? "none"})");
                 return;
             }
 

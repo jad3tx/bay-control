@@ -31,7 +31,10 @@ public sealed class ClipStore
     {
         lock (_gate)
         {
-            return _manifest.Take(Math.Clamp(limit, 1, 200)).ToList();
+            return _manifest
+                .Where(x => File.Exists(Path.Combine(_root, x.FileName)))
+                .Take(Math.Clamp(limit, 1, 200))
+                .ToList();
         }
     }
 
@@ -187,7 +190,12 @@ public sealed class ClipStore
             var list = JsonSerializer.Deserialize<List<ClipManifestEntry>>(json, JsonOptions);
             if (list is not null)
             {
-                _manifest.AddRange(list);
+                var existing = list.Where(x => File.Exists(Path.Combine(_root, x.FileName))).ToList();
+                _manifest.AddRange(existing);
+                if (existing.Count != list.Count)
+                {
+                    SaveManifestUnlocked();
+                }
             }
         }
         catch

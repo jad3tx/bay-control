@@ -1,9 +1,18 @@
+using System.Diagnostics;
 using OpenCvSharp;
 
 namespace BayControl.Host.Services.Clips;
 
 public sealed class CameraCaptureSession : IDisposable
 {
+    private static readonly (VideoCaptureAPIs Api, bool UseMjpg, string Label)[] CaptureCandidates =
+    [
+        (VideoCaptureAPIs.DSHOW, true, "DSHOW+MJPG"),
+        (VideoCaptureAPIs.MSMF, true, "MSMF+MJPG"),
+        (VideoCaptureAPIs.DSHOW, false, "DSHOW"),
+        (VideoCaptureAPIs.MSMF, false, "MSMF"),
+    ];
+
     private readonly int _index;
     private readonly int _width;
     private readonly int _height;
@@ -12,11 +21,23 @@ public sealed class CameraCaptureSession : IDisposable
     private CancellationTokenSource? _cts;
     private Task? _loop;
     private VideoCapture? _capture;
+    private long _framesCaptured;
+    private long _lastFrameTicks;
 
     public string Role { get; }
     public string DeviceId { get; }
     public bool IsRunning { get; private set; }
     public string? LastError { get; private set; }
+    public string? BackendName { get; private set; }
+    public long FramesCaptured => Interlocked.Read(ref _framesCaptured);
+    public DateTimeOffset? LastFrameUtc
+    {
+        get
+        {
+            var ticks = Interlocked.Read(ref _lastFrameTicks);
+            return ticks > 0 ? new DateTimeOffset(ticks, TimeSpan.Zero) : null;
+        }
+    }
     public ClipRingBuffer Ring => _ring;
 
     public CameraCaptureSession(
@@ -40,6 +61,10 @@ public sealed class CameraCaptureSession : IDisposable
     public void Start()
     {
         Stop();
+        Interlocked.Exchange(ref _framesCaptured, 0);
+        Interlocked.Exchange(ref _lastFrameTicks, 0);
+        BackendName = null;
+        LastError = null;
         _cts = new CancellationTokenSource();
         _loop = Task.Run(() => RunAsync(_cts.Token));
     }
@@ -58,45 +83,80 @@ public sealed class CameraCaptureSession : IDisposable
     {
         try
         {
-            _capture = new VideoCapture(_index, VideoCaptureAPIs.DSHOW);
-            if (!_capture.IsOpened())
+            using var frame = new Mat();
+            var anyOpened = false;
+
+            foreach (var (api, useMjpg, label) in CaptureCandidates)
             {
-                _capture.Dispose();
-                _capture = new VideoCapture(_index);
+                if (ct.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                var cap = new VideoCapture(_index, api);
+                if (!cap.IsOpened())
+                {
+                    cap.Dispose();
+                    continue;
+                }
+
+                anyOpened = true;
+                if (useMjpg)
+                {
+                    cap.Set(VideoCaptureProperties.FourCC, FourCC.MJPG);
+                }
+
+                cap.Set(VideoCaptureProperties.FrameWidth, _width);
+                cap.Set(VideoCaptureProperties.FrameHeight, _height);
+                cap.Set(VideoCaptureProperties.Fps, _fps);
+
+                // Verify the backend actually delivers frames before committing to it.
+                var gotFirstFrame = false;
+                var warmup = Stopwatch.StartNew();
+                while (!ct.IsCancellationRequested && warmup.ElapsedMilliseconds < 2500)
+                {
+                    if (cap.Read(frame) && !frame.Empty())
+                    {
+                        gotFirstFrame = true;
+                        break;
+                    }
+
+                    Thread.Sleep(25);
+                }
+
+                if (!gotFirstFrame)
+                {
+                    cap.Release();
+                    cap.Dispose();
+                    continue;
+                }
+
+                _capture = cap;
+                BackendName = label;
+                IsRunning = true;
+                LastError = null;
+                RecordFrame(frame);
+                break;
             }
 
-            if (!_capture.IsOpened())
+            if (_capture is null)
             {
-                LastError = $"Could not open camera index {_index}";
+                LastError = anyOpened
+                    ? $"Camera {_index} opened but delivered no frames"
+                    : $"Could not open camera index {_index}";
                 IsRunning = false;
                 return;
             }
 
-            _capture.Set(VideoCaptureProperties.FrameWidth, _width);
-            _capture.Set(VideoCaptureProperties.FrameHeight, _height);
-            _capture.Set(VideoCaptureProperties.Fps, _fps);
-
-            IsRunning = true;
-            LastError = null;
-            using var frame = new Mat();
             while (!ct.IsCancellationRequested)
             {
                 if (!_capture.Read(frame) || frame.Empty())
                 {
-                    Thread.Sleep(20);
+                    Thread.Sleep(15);
                     continue;
                 }
 
-                using var sized = new Mat();
-                if (frame.Width != _width || frame.Height != _height)
-                {
-                    Cv2.Resize(frame, sized, new OpenCvSharp.Size(_width, _height));
-                    _ring.Add(sized, DateTimeOffset.UtcNow);
-                }
-                else
-                {
-                    _ring.Add(frame, DateTimeOffset.UtcNow);
-                }
+                RecordFrame(frame);
             }
         }
         catch (Exception ex)
@@ -110,6 +170,24 @@ public sealed class CameraCaptureSession : IDisposable
             _capture?.Dispose();
             _capture = null;
         }
+    }
+
+    private void RecordFrame(Mat frame)
+    {
+        var now = DateTimeOffset.UtcNow;
+        if (frame.Width != _width || frame.Height != _height)
+        {
+            using var sized = new Mat();
+            Cv2.Resize(frame, sized, new OpenCvSharp.Size(_width, _height));
+            _ring.Add(sized, now);
+        }
+        else
+        {
+            _ring.Add(frame, now);
+        }
+
+        Interlocked.Increment(ref _framesCaptured);
+        Interlocked.Exchange(ref _lastFrameTicks, now.UtcTicks);
     }
 
     public void Dispose()
