@@ -21,17 +21,15 @@ Bay Control can save **±3 second** clips around each shot from up to two USB we
 4. Hit a ball (or **Simulate shot** / **Test clip**) — clips appear under **Swings** on the phone remote.
 5. Files live in `%LocalAppData%\BayControl\clips\` (Open **Clips folder** on the dashboard).
 
-## Update from Git (sim PC)
+## Update on the sim PC
 
-If the sim PC has **Git** and the **.NET 8 SDK**, you can pull and rebuild in place:
+Downloads the latest GitHub **release zip** (no Git or .NET SDK required):
 
 ```powershell
 irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.bootstrap.ps1 | iex
 ```
 
-(Do not `| iex` the main `Update-BayControl.ps1` — its `param()` block fails under Invoke-Expression.)
-
-Or from a clone: `.\tools\Update-BayControl.ps1` (optional `-Tag v1.3.0`, `-SkipPull`). App install path: `%LOCALAPPDATA%\BayControl\app`.
+Optional: `.\tools\Update-BayControl.ps1 -Tag v1.3.0` or `-FromSource` (Git + .NET 8 SDK). App install path: `%LOCALAPPDATA%\BayControl\app`.
 
 ## Recommended (release zip)
 

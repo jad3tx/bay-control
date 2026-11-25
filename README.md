@@ -71,16 +71,16 @@ Cut a GitHub release (commits if needed, tags from the csproj `<Version>`, pushe
 Redeploy on the **sim PC** (needs Git + .NET 8 SDK). Clones/pulls, publishes, replaces the install, restarts:
 
 ```powershell
-# On the sim PC (do not pipe the main script into iex — use the bootstrap):
+# On the sim PC — downloads the latest release zip (no Git / no SDK needed):
 irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.bootstrap.ps1 | iex
 
-# Or from a local clone on that PC:
-.\tools\Update-BayControl.ps1
+# Optional: pin a tag, or build from source (needs Git + .NET 8 SDK):
+#   ... | iex   then edit, or download Update-BayControl.ps1 and run:
 .\tools\Update-BayControl.ps1 -Tag v1.3.0
-.\tools\Update-BayControl.ps1 -SkipPull   # build current tree only
+.\tools\Update-BayControl.ps1 -FromSource
 ```
 
-Install lands in `%LOCALAPPDATA%\BayControl\app` (source clone in `%LOCALAPPDATA%\BayControl\src`).
+Install lands in `%LOCALAPPDATA%\BayControl\app`.
 
 ### Layout
 
