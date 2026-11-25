@@ -26,7 +26,7 @@ Bay Control can save **±3 second** clips around each shot from up to two USB we
 Downloads the latest GitHub **release zip** (no Git or .NET SDK required):
 
 ```powershell
-irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/jad3tx/bay-control/main/install.ps1 | iex
 ```
 
 Optional: `.\tools\Update-BayControl.ps1 -Tag v1.3.0` or `-FromSource` (Git + .NET 8 SDK). App install path: `%LOCALAPPDATA%\BayControl\app`.

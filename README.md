@@ -72,7 +72,7 @@ Redeploy on the **sim PC** (needs Git + .NET 8 SDK). Clones/pulls, publishes, re
 
 ```powershell
 # On the sim PC — downloads the latest release zip (no Git / no SDK needed):
-irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/jad3tx/bay-control/main/install.ps1 | iex
 
 # Optional: pin a tag, or build from source (needs Git + .NET 8 SDK):
 #   ... | iex   then edit, or download Update-BayControl.ps1 and run:
