@@ -397,7 +397,11 @@ function selectClip(id, pinned) {
   const meta = document.getElementById("swingMeta");
   if (player) {
     player.src = `/api/clips/${encodeURIComponent(id)}/video?${authQuery()}`;
-    player.play?.().catch(() => {});
+    player.play?.().catch((err) => {
+      if (err && err.name !== "NotAllowedError" && meta && !player.error) {
+        meta.textContent = `Playback failed: ${err.message || err.name}`;
+      }
+    });
   }
   if (meta && clip) {
     meta.textContent = `${clip.cameraLabel || clip.cameraRole} · impact @ ${Math.round((clip.impactOffsetMs || 3000) / 100) / 10}s`;
@@ -500,6 +504,17 @@ function bindUi() {
       state.clipRoleFilter = tab.dataset.role;
       roleTabs.querySelectorAll(".role-tab").forEach((t) => t.classList.toggle("active", t === tab));
       renderSwingList();
+    });
+  }
+
+  const swingPlayer = document.getElementById("swingPlayer");
+  if (swingPlayer) {
+    swingPlayer.addEventListener("error", () => {
+      const err = swingPlayer.error;
+      const meta = document.getElementById("swingMeta");
+      if (!err || !meta) return;
+      const detail = err.message ? `: ${err.message}` : "";
+      meta.textContent = `Playback error (code ${err.code})${detail}`;
     });
   }
 
