@@ -68,6 +68,20 @@ Cut a GitHub release (commits if needed, tags from the csproj `<Version>`, pushe
 .\tools\Publish-Release.ps1 -DryRun   # preview only
 ```
 
+Redeploy on the **sim PC** (needs Git + .NET 8 SDK). Clones/pulls, publishes, replaces the install, restarts:
+
+```powershell
+# After this script is on GitHub (main):
+irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.ps1 | iex
+
+# Or from a local clone on that PC:
+.\tools\Update-BayControl.ps1
+.\tools\Update-BayControl.ps1 -Tag v1.3.0
+.\tools\Update-BayControl.ps1 -SkipPull   # build current tree only
+```
+
+Install lands in `%LOCALAPPDATA%\BayControl\app` (source clone in `%LOCALAPPDATA%\BayControl\src`).
+
 ### Layout
 
 | Path | Purpose |
@@ -79,6 +93,7 @@ Cut a GitHub release (commits if needed, tags from the csproj `<Version>`, pushe
 | `tests/` | Unit tests |
 | `Install-BayControl.ps1` | Optional setup helper shipped in the release zip |
 | `tools/Publish-Release.ps1` | Tag + push a versioned GitHub Release |
+| `tools/Update-BayControl.ps1` | Clone/pull + publish + reinstall on the sim PC |
 
 ## Security notes
 

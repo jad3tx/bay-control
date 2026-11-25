@@ -234,7 +234,7 @@ dialog button {
 /* —— Surface tabs (Play / More / Trackpad) —— */
 .surface-nav {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   margin-bottom: 10px;
   padding: 4px;
@@ -289,6 +289,134 @@ dialog button {
   font-size: 0.75rem;
   color: var(--muted);
   line-height: 1.2;
+}
+
+.last-shot {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.last-shot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.source-chip {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(240, 199, 94, 0.15);
+  border: 1px solid rgba(240, 199, 94, 0.35);
+  color: var(--accent);
+}
+
+.source-chip[data-source="nova"] {
+  background: rgba(125, 206, 160, 0.15);
+  border-color: rgba(125, 206, 160, 0.4);
+  color: var(--ok);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metric {
+  display: grid;
+  gap: 2px;
+  text-align: center;
+  padding: 6px 4px;
+}
+
+.metric-val {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.metric-lbl {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.swing-role-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.role-tab {
+  min-height: 38px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.role-tab.active {
+  background: linear-gradient(180deg, rgba(240, 199, 94, 0.9), rgba(201, 150, 47, 0.9));
+  color: #1a2a18;
+  border-color: transparent;
+}
+
+.swing-player {
+  width: 100%;
+  max-height: 42vh;
+  border-radius: 12px;
+  background: #000;
+  border: 1px solid var(--stroke);
+}
+
+.swing-meta {
+  margin: 8px 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.swing-list {
+  display: grid;
+  gap: 6px;
+  max-height: 28vh;
+  overflow: auto;
+}
+
+.swing-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--stroke);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.swing-row.active {
+  border-color: rgba(240, 199, 94, 0.55);
+  background: rgba(240, 199, 94, 0.12);
+}
+
+.swing-row small {
+  font-weight: 500;
+  color: var(--muted);
 }
 
 .play-grid {

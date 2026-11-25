@@ -82,7 +82,11 @@ public sealed class WebSocketHub(AppState state, CommandRouter router)
 
     public async Task BroadcastStatusAsync()
     {
-        var payload = router.BuildStatusPayload();
+        await BroadcastAsync(router.BuildStatusPayload());
+    }
+
+    public async Task BroadcastAsync(object payload)
+    {
         foreach (var socket in _sockets.Values.ToArray())
         {
             if (socket.State == WebSocketState.Open)

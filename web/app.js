@@ -54,7 +54,11 @@ const state = {
   activeProfileId: null,
   reconnectTimer: null,
   lastPointer: null,
-  surface: "play"
+  surface: "play",
+  clips: [],
+  clipRoleFilter: "all",
+  selectedClipId: null,
+  userPinnedClip: false
 };
 
 function qsToken() {
@@ -114,6 +118,10 @@ function connectWs() {
     try {
       const msg = JSON.parse(ev.data);
       if (msg.type === "status") applyStatus(msg);
+      if (msg.type === "shot") renderLastShot(msg.shot);
+      if (msg.type === "launch_status") applyLaunchStatus(msg);
+      if (msg.type === "clip.ready") onClipReady(msg);
+      if (msg.type === "clip.failed") showToast(msg.error === "no_camera" ? "No swing camera armed" : (msg.error || "Clip failed"));
       if (msg.type === "result" && !msg.ok) showToast(msg.message || "Failed");
     } catch {
       // ignore
@@ -171,6 +179,12 @@ function applyStatus(msg) {
   if (tip) {
     els.statusChip.title = tip;
   }
+
+  const lastShot = pick(msg, "lastShot", "LastShot");
+  if (lastShot) renderLastShot(lastShot);
+
+  const launch = pick(msg, "launch", "Launch");
+  if (launch) applyLaunchStatus({ nova: { state: pick(launch, "nova", "Nova") }, tee: { state: pick(launch, "tee", "Tee") } });
 
   const tipEl = document.getElementById("healthTip");
   if (tipEl) {
@@ -257,6 +271,60 @@ function renderAllPads(profileId) {
   });
 }
 
+function fmt(n, digits = 1) {
+  if (n === undefined || n === null || Number.isNaN(Number(n))) return "—";
+  return Number(n).toFixed(digits);
+}
+
+function renderLastShot(shot) {
+  if (!shot) return;
+  const empty = document.getElementById("shotEmpty");
+  const metrics = document.getElementById("shotMetrics");
+  const chip = document.getElementById("shotSource");
+  if (!empty || !metrics || !chip) return;
+
+  empty.classList.add("hidden");
+  metrics.classList.remove("hidden");
+
+  const ball = pick(shot, "ball", "Ball") || {};
+  const speed = pick(ball, "speed", "Speed");
+  const speedUnit = pick(ball, "speedUnit", "SpeedUnit") || "mph";
+  const vla = pick(ball, "vlaDeg", "VlaDeg");
+  const hla = pick(ball, "hlaDeg", "HlaDeg");
+  const spin = pick(ball, "totalSpinRpm", "TotalSpinRpm");
+  const axis = pick(ball, "spinAxisDeg", "SpinAxisDeg");
+  const carry = pick(shot, "carry", "Carry");
+  const carryUnit = pick(shot, "carryUnit", "CarryUnit") || "";
+  const source = pick(shot, "source", "Source") || "—";
+
+  document.getElementById("mSpeed").textContent = `${fmt(speed)} ${speedUnit}`;
+  document.getElementById("mVla").textContent = `${fmt(vla)}°`;
+  document.getElementById("mHla").textContent = `${fmt(hla)}°`;
+  document.getElementById("mSpin").textContent = fmt(spin, 0);
+  document.getElementById("mAxis").textContent = `${fmt(axis)}°`;
+  document.getElementById("mCarry").textContent = carry == null ? "—" : `${fmt(carry, 0)} ${carryUnit}`.trim();
+  chip.textContent = source;
+  chip.dataset.source = source;
+}
+
+function applyLaunchStatus(msg) {
+  const nova = pick(msg, "nova", "Nova");
+  const state = typeof nova === "string" ? nova : pick(nova, "state", "State");
+  const empty = document.getElementById("shotEmpty");
+  const metrics = document.getElementById("shotMetrics");
+  if (!empty || (metrics && !metrics.classList.contains("hidden"))) return;
+
+  if (state === "connected" || state === "connecting") {
+    empty.textContent = "Waiting for first shot…";
+  } else if (state === "searching") {
+    empty.textContent = "Nova not found — check Wi‑Fi / power";
+  } else if (state === "disabled") {
+    empty.textContent = "Nova disabled on the sim PC";
+  } else if (state === "error" || state === "disconnected") {
+    empty.textContent = "Nova disconnected — keys still work";
+  }
+}
+
 function setSurface(name) {
   state.surface = name;
   els.surfaceNav.querySelectorAll(".surface-tab").forEach((tab) => {
@@ -269,6 +337,72 @@ function setSurface(name) {
     panel.classList.toggle("active", on);
     panel.hidden = !on;
   });
+  if (name === "swings") refreshClips();
+}
+
+function authQuery() {
+  return state.token
+    ? `t=${encodeURIComponent(state.token)}`
+    : `pin=${encodeURIComponent(state.pin)}`;
+}
+
+async function refreshClips() {
+  try {
+    const res = await fetch(`/api/clips?limit=40&${authQuery()}`);
+    if (!res.ok) return;
+    state.clips = await res.json();
+    renderSwingList();
+    if (!state.selectedClipId && state.clips.length) {
+      selectClip(state.clips[0].id, false);
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function onClipReady(msg) {
+  const clipId = pick(msg, "clipId", "ClipId");
+  if (!clipId) return;
+  refreshClips().then(() => {
+    if (!state.userPinnedClip) selectClip(clipId, false);
+  });
+  showToast("Swing clip ready");
+}
+
+function renderSwingList() {
+  const host = document.getElementById("swingList");
+  if (!host) return;
+  const filter = state.clipRoleFilter;
+  const rows = state.clips.filter((c) => filter === "all" || c.cameraRole === filter);
+  host.innerHTML = "";
+  for (const c of rows) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "swing-row" + (c.id === state.selectedClipId ? " active" : "");
+    const when = c.createdAt ? new Date(c.createdAt).toLocaleTimeString() : "";
+    btn.innerHTML = `<span>${c.cameraLabel || c.cameraRole}<br><small>${when}</small></span><small>${Math.round((c.durationMs || 0) / 100) / 10}s</small>`;
+    btn.addEventListener("click", () => selectClip(c.id, true));
+    host.appendChild(btn);
+  }
+  if (!rows.length) {
+    host.innerHTML = `<p class="zone-sub">No clips yet — hit a shot with cameras armed on the sim PC.</p>`;
+  }
+}
+
+function selectClip(id, pinned) {
+  state.selectedClipId = id;
+  state.userPinnedClip = !!pinned;
+  const clip = state.clips.find((c) => c.id === id);
+  const player = document.getElementById("swingPlayer");
+  const meta = document.getElementById("swingMeta");
+  if (player) {
+    player.src = `/api/clips/${encodeURIComponent(id)}/video?${authQuery()}`;
+    player.play?.().catch(() => {});
+  }
+  if (meta && clip) {
+    meta.textContent = `${clip.cameraLabel || clip.cameraRole} · impact @ ${Math.round((clip.impactOffsetMs || 3000) / 100) / 10}s`;
+  }
+  renderSwingList();
 }
 
 function fireAction(btn) {
@@ -357,6 +491,17 @@ function bindUi() {
     if (!tab) return;
     setSurface(tab.dataset.surface);
   });
+
+  const roleTabs = document.getElementById("swingRoleTabs");
+  if (roleTabs) {
+    roleTabs.addEventListener("click", (ev) => {
+      const tab = ev.target.closest(".role-tab");
+      if (!tab) return;
+      state.clipRoleFilter = tab.dataset.role;
+      roleTabs.querySelectorAll(".role-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      renderSwingList();
+    });
+  }
 
   // Regular taps (exclude hold-repeat / hold-confirm — those manage their own fire).
   els.board.addEventListener("click", (ev) => {
