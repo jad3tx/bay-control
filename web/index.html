@@ -49,54 +49,62 @@
       </div>
       <p id="bookmarkHint" class="bookmark-hint hidden"></p>
 
+      <nav class="surface-nav" id="surfaceNav" aria-label="Remote surfaces">
+        <button type="button" class="surface-tab active" data-surface="play" aria-pressed="true">Play</button>
+        <button type="button" class="surface-tab" data-surface="more" aria-pressed="false">More</button>
+        <button type="button" class="surface-tab" data-surface="trackpad" aria-pressed="false">Trackpad</button>
+      </nav>
+
       <div class="board" id="board">
-        <section class="zone zone-play" aria-label="Shot setup">
-          <h2 class="zone-title">Shot setup</h2>
-          <p class="zone-sub">Club, aim, tee, mulligan</p>
-          <div id="zone-play-buttons" class="pad"></div>
-          <div class="aim-block">
-            <div class="aim-pad">
-              <button type="button" class="up" data-action="aim_up">Aim ↑</button>
-              <button type="button" class="left" data-action="aim_left">←</button>
-              <button type="button" class="mid accent" data-action="reset_aim">Reset</button>
-              <button type="button" class="right" data-action="aim_right">→</button>
-              <button type="button" class="down" data-action="aim_down">Aim ↓</button>
+        <section class="surface surface-play active" id="surface-play" aria-label="Play">
+          <div class="play-grid">
+            <div class="play-clubs">
+              <div id="zone-play-buttons" class="pad pad-clubs"></div>
             </div>
-            <div class="pad pad-tight">
-              <button type="button" data-action="tee_left">Tee ←</button>
-              <button type="button" data-action="tee_right">Tee →</button>
-              <button type="button" class="accent" data-action="mulligan">Mulligan</button>
+
+            <div class="aim-block">
+              <div class="aim-pad">
+                <button type="button" class="up hold-repeat" data-action="aim_up">Aim ↑</button>
+                <button type="button" class="left hold-repeat" data-action="aim_left">←</button>
+                <button type="button" class="mid accent" data-action="reset_aim">Reset</button>
+                <button type="button" class="right hold-repeat" data-action="aim_right">→</button>
+                <button type="button" class="down hold-repeat" data-action="aim_down">Aim ↓</button>
+              </div>
+              <div class="pad pad-tight">
+                <button type="button" class="hold-repeat" data-action="tee_left">Tee ←</button>
+                <button type="button" class="hold-repeat" data-action="tee_right">Tee →</button>
+                <button type="button" class="accent hold-confirm" data-action="mulligan">Mulligan</button>
+              </div>
+            </div>
+
+            <div class="play-reads">
+              <p class="zone-sub">Green &amp; view</p>
+              <div id="zone-reads-buttons" class="pad pad-reads"></div>
             </div>
           </div>
         </section>
 
-        <section class="zone zone-green" aria-label="Green read">
-          <h2 class="zone-title">Green read</h2>
-          <p class="zone-sub">Break, pin, distance</p>
-          <div id="zone-green-buttons" class="pad"></div>
+        <section class="surface surface-more" id="surface-more" aria-label="More" hidden>
+          <div class="more-sections">
+            <div class="zone-block">
+              <h2 class="zone-title">Practice</h2>
+              <p class="zone-sub">Ball and hole jumps</p>
+              <div id="zone-practice-buttons" class="pad"></div>
+            </div>
+            <div class="zone-block">
+              <h2 class="zone-title">Camera &amp; HUD</h2>
+              <p class="zone-sub">Views, tracers, display</p>
+              <div id="zone-camera-buttons" class="pad"></div>
+            </div>
+            <div class="zone-block">
+              <h2 class="zone-title">System</h2>
+              <p class="zone-sub">Sound, map, debug</p>
+              <div id="zone-system-buttons" class="pad"></div>
+            </div>
+          </div>
         </section>
 
-        <section class="zone zone-cameras" aria-label="View">
-          <h2 class="zone-title">View</h2>
-          <p class="zone-sub">Cameras and flyovers</p>
-          <div id="zone-cameras-buttons" class="pad"></div>
-        </section>
-
-        <section class="zone zone-round" aria-label="Round">
-          <h2 class="zone-title">Round</h2>
-          <p class="zone-sub">Scorecard, holes, HUD</p>
-          <div id="zone-round-buttons" class="pad"></div>
-        </section>
-
-        <section class="zone zone-more" aria-label="Extras">
-          <h2 class="zone-title">Extras</h2>
-          <p class="zone-sub">Sound, map, debug</p>
-          <div id="zone-more-buttons" class="pad"></div>
-        </section>
-
-        <section class="zone zone-mouse" aria-label="Pointer">
-          <h2 class="zone-title">Pointer</h2>
-          <p class="zone-sub">Mouse and typing</p>
+        <section class="surface surface-trackpad" id="surface-trackpad" aria-label="Trackpad" hidden>
           <div class="trackpad" id="trackpad" tabindex="0">
             <span>Drag to move · tap to click</span>
           </div>
@@ -125,7 +133,7 @@
       <li>Focus GSPro or Pureplay so controls are armed.</li>
       <li>Share → Add to Home Screen to bookmark this pairing.</li>
     </ol>
-    <p>All controls are on one board — scroll if needed on smaller phones.</p>
+    <p><strong>Play</strong> is shot setup and green read. <strong>More</strong> holds practice, camera extras, and system. <strong>Trackpad</strong> moves the PC pointer.</p>
     <button type="button" id="closeHelp">Close</button>
   </dialog>
 

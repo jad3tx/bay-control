@@ -10,7 +10,7 @@ Canonical action IDs used by the web UI and JSON profiles. Profiles map these ID
 | `mulligan` | `ctrl+m` | play |
 | `reset_aim` | `a` | play |
 | `aim_left` / `aim_right` / `aim_up` / `aim_down` | arrows | play |
-| `tee_left` / `tee_right` | `[` / `]` | play |
+| `tee_left` / `tee_right` | `c` / `v` (GSPro; Pureplay may still use `[` / `]`) | play |
 | `heat_map` | `y` | green |
 | `green_grid` | `g` | green |
 | `vertical_dots` | `d` | green |

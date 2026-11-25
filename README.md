@@ -61,6 +61,13 @@ dotnet test
 dotnet publish host/BayControl.Host.csproj -c Release -r win-x64 --self-contained true -o artifacts/BayControl
 ```
 
+Cut a GitHub release (commits if needed, tags from the csproj `<Version>`, pushes so CI builds the zip):
+
+```powershell
+.\tools\Publish-Release.ps1 -Message "Play-first layout: Play / More / Trackpad."
+.\tools\Publish-Release.ps1 -DryRun   # preview only
+```
+
 ### Layout
 
 | Path | Purpose |
@@ -71,6 +78,7 @@ dotnet publish host/BayControl.Host.csproj -c Release -r win-x64 --self-containe
 | `docs/` | Install, troubleshoot, contributing |
 | `tests/` | Unit tests |
 | `Install-BayControl.ps1` | Optional setup helper shipped in the release zip |
+| `tools/Publish-Release.ps1` | Tag + push a versioned GitHub Release |
 
 ## Security notes
 

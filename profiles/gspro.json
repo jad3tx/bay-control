@@ -45,8 +45,8 @@
     "aim_right": { "keys": ["right"], "label": "Aim Right", "group": "play" },
     "aim_up": { "keys": ["up"], "label": "Aim Up", "group": "play" },
     "aim_down": { "keys": ["down"], "label": "Aim Down", "group": "play" },
-    "tee_left": { "keys": ["oem_4"], "label": "Tee Left", "group": "play" },
-    "tee_right": { "keys": ["oem_6"], "label": "Tee Right", "group": "play" },
+    "tee_left": { "keys": ["c"], "label": "Tee Left", "group": "play" },
+    "tee_right": { "keys": ["v"], "label": "Tee Right", "group": "play" },
     "show_shortcuts": { "keys": ["tab"], "label": "Shortcuts", "group": "more" }
   }
 }

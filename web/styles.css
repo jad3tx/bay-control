@@ -109,7 +109,7 @@ body {
 
 main {
   padding: 4px 12px 20px;
-  max-width: 1400px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -231,20 +231,49 @@ dialog button {
   padding: 0 14px;
 }
 
-/* —— All-controls board —— */
-.board {
+/* —— Surface tabs (Play / More / Trackpad) —— */
+.surface-nav {
   display: grid;
-  gap: 10px;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 4px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--stroke);
 }
 
-.zone {
+.surface-tab {
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+}
+
+.surface-tab.active {
+  background: linear-gradient(180deg, rgba(240, 199, 94, 0.95), rgba(201, 150, 47, 0.95));
+  color: #1a2a18;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.board {
+  display: block;
+}
+
+.surface {
   background: var(--panel);
   border: 1px solid var(--stroke);
   border-radius: var(--radius);
-  padding: 10px;
+  padding: 12px;
   backdrop-filter: blur(8px);
 }
+
+.surface[hidden] { display: none !important; }
 
 .zone-title {
   margin: 0;
@@ -262,10 +291,23 @@ dialog button {
   line-height: 1.2;
 }
 
+.play-grid {
+  display: grid;
+  gap: 12px;
+}
+
 .pad {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.pad-clubs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pad-reads {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .pad-tight {
@@ -303,9 +345,8 @@ dialog button {
 }
 
 .aim-block {
-  margin-top: 10px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.2fr 1fr;
   gap: 10px;
 }
 
@@ -332,6 +373,8 @@ dialog button {
   border-radius: 12px;
   cursor: pointer;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
+  user-select: none;
+  touch-action: none;
 }
 
 .aim-pad button.accent,
@@ -346,8 +389,37 @@ dialog button {
 .aim-pad .right { grid-area: right; }
 .aim-pad .mid { grid-area: mid; }
 
+.hold-repeat,
+.hold-confirm {
+  user-select: none;
+  touch-action: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.hold-confirm.holding::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 4px;
+  width: var(--hold, 0%);
+  background: rgba(26, 42, 24, 0.55);
+  transition: none;
+}
+
+.more-sections {
+  display: grid;
+  gap: 14px;
+}
+
+.zone-block + .zone-block {
+  padding-top: 10px;
+  border-top: 1px solid var(--stroke);
+}
+
 .trackpad {
-  height: 140px;
+  height: 200px;
   border-radius: 16px;
   border: 1px solid var(--stroke);
   background:
@@ -419,101 +491,56 @@ dialog h2 { font-family: var(--font-display); margin-top: 0; }
 dialog ol { color: var(--muted); padding-left: 1.2rem; }
 dialog button { width: 100%; margin-top: 12px; }
 
-/* Phone portrait: still all visible, stacked, scrollable */
-@media (max-width: 719px) {
+@media (max-width: 559px) {
   .aim-block {
     grid-template-columns: 1fr;
   }
   .track-actions {
     grid-template-columns: repeat(2, 1fr);
   }
-  .pad {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .pad-reads {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* Tablet / landscape web: everything on one board */
-@media (min-width: 720px) {
-  :root { --tap: 46px; }
+@media (min-width: 700px) {
+  :root { --tap: 50px; }
 
-  .board {
-    grid-template-columns: 1.15fr 1fr 1fr;
+  .play-grid {
+    grid-template-columns: 1fr 1.15fr;
     grid-template-areas:
-      "play green cameras"
-      "play round more"
-      "mouse mouse mouse";
-    gap: 10px;
+      "clubs clubs"
+      "aim reads";
     align-items: start;
   }
 
-  .zone-play { grid-area: play; }
-  .zone-green { grid-area: green; }
-  .zone-cameras { grid-area: cameras; }
-  .zone-round { grid-area: round; }
-  .zone-more { grid-area: more; }
-  .zone-mouse { grid-area: mouse; }
+  .play-clubs { grid-area: clubs; }
+  .aim-block { grid-area: aim; }
+  .play-reads { grid-area: reads; }
 
-  .zone-play .pad {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .more-sections {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
   }
 
-  .zone-green .pad,
-  .zone-cameras .pad,
-  .zone-round .pad,
-  .zone-more .pad {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .zone-block + .zone-block {
+    padding-top: 0;
+    border-top: 0;
+    padding-left: 12px;
+    border-left: 1px solid var(--stroke);
   }
 
-  .zone-mouse {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 8px 12px;
-  }
-
-  .zone-mouse .zone-title {
-    grid-column: 1 / -1;
-  }
-
-  .zone-mouse .trackpad {
-    height: 120px;
-    grid-row: 2 / 4;
-  }
-
-  .zone-mouse .track-actions {
-    margin-top: 0;
-  }
+  .trackpad { height: 240px; }
 }
 
-@media (min-width: 1100px) {
-  .board {
-    grid-template-columns: 1.2fr 1fr 1fr 1.1fr;
-    grid-template-areas:
-      "play green cameras mouse"
-      "play round more mouse";
-  }
-
-  .zone-mouse {
-    grid-template-columns: 1fr;
-  }
-
-  .zone-mouse .trackpad {
-    height: 180px;
-    grid-row: auto;
-  }
-
-  .zone-more .pad {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (orientation: landscape) and (max-height: 900px) {
-  .top { padding-top: 6px; padding-bottom: 0; }
-  .brand h1 { font-size: 1.25rem; }
-  .zone { padding: 8px; }
-  .zone-title { margin-bottom: 6px; }
-  :root { --tap: 42px; }
-  .trackpad { height: 100px; }
+@media (orientation: landscape) and (max-height: 520px) {
+  .top { padding-top: 4px; padding-bottom: 0; }
+  .brand h1 { font-size: 1.15rem; }
+  .surface { padding: 8px; }
+  .surface-nav { margin-bottom: 6px; }
+  :root { --tap: 40px; }
+  .trackpad { height: 120px; }
+  .play-reads .zone-sub { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

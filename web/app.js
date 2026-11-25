@@ -1,21 +1,19 @@
-// Sections by bay use — all rendered at once (no tabs).
+// Course Control–style: Play primary, More secondary, Trackpad separate.
 const LAYOUT = {
-  play: [
-    "prev_club", "next_club", "putt_toggle"
+  play: ["prev_club", "next_club", "putt_toggle"],
+  reads: [
+    "heat_map", "green_grid", "pin_indicator", "aim_point",
+    "shot_cam", "flyover", "scorecard"
   ],
-  green: [
-    "heat_map", "green_grid", "vertical_dots",
-    "pin_indicator", "range_finder", "aim_point"
+  practice: [
+    "goto_ball", "prev_hole", "next_hole",
+    "cam_go_to_ball", "cam_fly_to_ball", "range_finder"
   ],
-  cameras: [
-    "shot_cam", "flyover", "free_look",
-    "cam_go_to_ball", "cam_fly_to_ball", "goto_ball"
+  camera: [
+    "free_look", "vertical_dots", "clear_tracers",
+    "hud_toggle", "toggle_ui", "fullscreen"
   ],
-  round: [
-    "scorecard", "prev_hole", "next_hole",
-    "clear_tracers", "hud_toggle", "toggle_ui", "fullscreen"
-  ],
-  more: [
+  system: [
     "show_shortcuts", "map_zoom_in", "map_zoom_out",
     "line_of_sight", "toggle_grass", "lighting",
     "mute", "sound_on", "fast_forward", "fps",
@@ -25,6 +23,9 @@ const LAYOUT = {
 
 const ACCENT = new Set(["mulligan"]);
 const DANGER = new Set([]);
+const HOLD_CONFIRM_MS = 700;
+const HOLD_REPEAT_DELAY_MS = 320;
+const HOLD_REPEAT_INTERVAL_MS = 110;
 
 const els = {
   authGate: document.getElementById("authGate"),
@@ -40,7 +41,9 @@ const els = {
   closeHelp: document.getElementById("closeHelp"),
   trackpad: document.getElementById("trackpad"),
   typeInput: document.getElementById("typeInput"),
-  sendText: document.getElementById("sendText")
+  sendText: document.getElementById("sendText"),
+  surfaceNav: document.getElementById("surfaceNav"),
+  board: document.getElementById("board")
 };
 
 const state = {
@@ -50,7 +53,8 @@ const state = {
   profiles: {},
   activeProfileId: null,
   reconnectTimer: null,
-  lastPointer: null
+  lastPointer: null,
+  surface: "play"
 };
 
 function qsToken() {
@@ -245,7 +249,6 @@ function renderAllPads(profileId) {
     btn.disabled = !meta;
     btn.title = meta ? "" : "Not available in this sim profile";
     if (meta && (meta.label || meta.Label) && !["aim_left", "aim_right", "aim_up", "aim_down"].includes(id)) {
-      // Keep short arrow glyphs for d-pad; refresh text labels for tee/reset/mulligan.
       if (id === "reset_aim") btn.textContent = "Reset";
       else if (id === "mulligan") btn.textContent = meta.label || meta.Label || "Mulligan";
       else if (id === "tee_left") btn.textContent = "Tee ←";
@@ -254,16 +257,121 @@ function renderAllPads(profileId) {
   });
 }
 
+function setSurface(name) {
+  state.surface = name;
+  els.surfaceNav.querySelectorAll(".surface-tab").forEach((tab) => {
+    const on = tab.dataset.surface === name;
+    tab.classList.toggle("active", on);
+    tab.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+  els.board.querySelectorAll(".surface").forEach((panel) => {
+    const on = panel.id === `surface-${name}`;
+    panel.classList.toggle("active", on);
+    panel.hidden = !on;
+  });
+}
+
+function fireAction(btn) {
+  if (!btn || btn.disabled) return;
+  btn.classList.add("pressed");
+  setTimeout(() => btn.classList.remove("pressed"), 120);
+  btn.blur();
+  send({ type: "action", action: btn.dataset.action });
+}
+
+function bindHoldRepeat(btn) {
+  let delayTimer = null;
+  let intervalTimer = null;
+  let armed = false;
+
+  const clear = () => {
+    armed = false;
+    clearTimeout(delayTimer);
+    clearInterval(intervalTimer);
+    delayTimer = null;
+    intervalTimer = null;
+  };
+
+  const start = (e) => {
+    if (btn.disabled) return;
+    e.preventDefault();
+    armed = true;
+    fireAction(btn);
+    delayTimer = setTimeout(() => {
+      if (!armed) return;
+      intervalTimer = setInterval(() => {
+        if (!armed) return;
+        fireAction(btn);
+      }, HOLD_REPEAT_INTERVAL_MS);
+    }, HOLD_REPEAT_DELAY_MS);
+  };
+
+  btn.addEventListener("pointerdown", start);
+  btn.addEventListener("pointerup", clear);
+  btn.addEventListener("pointercancel", clear);
+  btn.addEventListener("pointerleave", clear);
+  btn.addEventListener("lostpointercapture", clear);
+}
+
+function bindHoldConfirm(btn) {
+  let raf = null;
+  let started = false;
+
+  const clear = () => {
+    if (raf !== null) cancelAnimationFrame(raf);
+    raf = null;
+    started = false;
+    btn.classList.remove("holding");
+    btn.style.removeProperty("--hold");
+  };
+
+  btn.addEventListener("pointerdown", (e) => {
+    if (btn.disabled) return;
+    e.preventDefault();
+    clear();
+    started = true;
+    btn.classList.add("holding");
+    const t0 = performance.now();
+    const tick = (now) => {
+      if (!started) return;
+      const p = Math.min(1, (now - t0) / HOLD_CONFIRM_MS);
+      btn.style.setProperty("--hold", `${p * 100}%`);
+      if (p < 1) {
+        raf = requestAnimationFrame(tick);
+      } else {
+        clear();
+        fireAction(btn);
+      }
+    };
+    raf = requestAnimationFrame(tick);
+  });
+
+  btn.addEventListener("pointerup", clear);
+  btn.addEventListener("pointercancel", clear);
+  btn.addEventListener("pointerleave", clear);
+}
+
 function bindUi() {
-  document.getElementById("board").addEventListener("click", (ev) => {
+  els.surfaceNav.addEventListener("click", (ev) => {
+    const tab = ev.target.closest(".surface-tab");
+    if (!tab) return;
+    setSurface(tab.dataset.surface);
+  });
+
+  // Regular taps (exclude hold-repeat / hold-confirm — those manage their own fire).
+  els.board.addEventListener("click", (ev) => {
     const btn = ev.target.closest("[data-action]");
     if (!btn || btn.disabled) return;
+    if (btn.classList.contains("hold-repeat") || btn.classList.contains("hold-confirm")) {
+      ev.preventDefault();
+      return;
+    }
     ev.preventDefault();
-    btn.classList.add("pressed");
-    setTimeout(() => btn.classList.remove("pressed"), 120);
-    btn.blur();
-    send({ type: "action", action: btn.dataset.action });
+    fireAction(btn);
   });
+
+  document.querySelectorAll(".hold-repeat").forEach(bindHoldRepeat);
+  document.querySelectorAll(".hold-confirm").forEach(bindHoldConfirm);
 
   document.addEventListener("keydown", (ev) => {
     if ((ev.key === " " || ev.key === "Enter") && ev.target instanceof HTMLButtonElement && ev.target.dataset.action) {
@@ -293,6 +401,7 @@ function bindUi() {
   });
 
   bindTrackpad();
+  setSurface("play");
 }
 
 function bindTrackpad() {
