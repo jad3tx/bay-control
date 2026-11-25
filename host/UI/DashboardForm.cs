@@ -1,4 +1,6 @@
 using BayControl.Host.Services;
+using BayControl.Host.Services.Clips;
+using BayControl.Host.Services.Launch;
 
 namespace BayControl.Host.UI;
 
@@ -10,15 +12,28 @@ public sealed class DashboardForm : Form
     private readonly ProfileService _profiles;
     private readonly InputInjector _input;
     private readonly string _profilesDir;
+    private readonly ShotIngestService _shots;
+    private readonly LaunchMonitorCoordinator _launch;
+    private readonly CameraService _cameras;
+    private readonly ClipPipeline _clipPipeline;
+    private readonly ClipStore _clipStore;
     private readonly NotifyIcon _tray;
     private readonly PictureBox _qr;
     private readonly Label _urlLabel;
     private readonly Label _pinLabel;
     private readonly Label _statusLabel;
     private readonly Label _healthLabel;
+    private readonly Label _novaLabel;
+    private readonly Label _lastShotLabel;
+    private readonly Label _clipsLabel;
     private readonly ListBox _log;
     private readonly CheckBox _autostart;
     private readonly CheckBox _pauseRemote;
+    private readonly CheckBox _novaEnabled;
+    private readonly CheckBox _clipsEnabled;
+    private readonly TextBox _novaHost;
+    private readonly ComboBox _faceOnCam;
+    private readonly ComboBox _dtlCam;
     private readonly NumericUpDown _portBox;
     private readonly ComboBox _testAction;
     private readonly System.Windows.Forms.Timer _refreshTimer;
@@ -30,6 +45,11 @@ public sealed class DashboardForm : Form
         ProfileService profiles,
         InputInjector input,
         string profilesDir,
+        ShotIngestService shots,
+        LaunchMonitorCoordinator launch,
+        CameraService cameras,
+        ClipPipeline clipPipeline,
+        ClipStore clipStore,
         Action requestExit)
     {
         _pairing = pairing;
@@ -38,10 +58,15 @@ public sealed class DashboardForm : Form
         _profiles = profiles;
         _input = input;
         _profilesDir = profilesDir;
+        _shots = shots;
+        _launch = launch;
+        _cameras = cameras;
+        _clipPipeline = clipPipeline;
+        _clipStore = clipStore;
 
         Text = "Bay Control";
         Width = 560;
-        Height = 760;
+        Height = 980;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
@@ -105,11 +130,27 @@ public sealed class DashboardForm : Form
             ForeColor = Color.FromArgb(180, 210, 185)
         };
 
+        _novaLabel = new Label
+        {
+            Text = "Nova: starting…",
+            Location = new Point(240, 268),
+            Size = new Size(280, 22),
+            ForeColor = Color.FromArgb(240, 199, 94)
+        };
+
+        _lastShotLabel = new Label
+        {
+            Text = "Last shot: —",
+            Location = new Point(20, 300),
+            Size = new Size(500, 22),
+            ForeColor = Color.FromArgb(180, 210, 185)
+        };
+
         _autostart = new CheckBox
         {
             Text = "Start with Windows",
             Checked = AutostartService.IsEnabled(),
-            Location = new Point(20, 300),
+            Location = new Point(20, 330),
             AutoSize = true,
             ForeColor = Color.White
         };
@@ -123,23 +164,39 @@ public sealed class DashboardForm : Form
         _pauseRemote = new CheckBox
         {
             Text = "Pause remote input",
-            Location = new Point(200, 300),
+            Location = new Point(200, 330),
             AutoSize = true,
             ForeColor = Color.White
         };
         _pauseRemote.CheckedChanged += (_, _) => state.SetRemotePaused(_pauseRemote.Checked);
 
-        var portLabel = new Label { Text = "Port (next launch)", Location = new Point(20, 335), AutoSize = true };
+        _novaEnabled = new CheckBox
+        {
+            Text = "Nova launch data",
+            Checked = _settings.Current.NovaEnabled,
+            Location = new Point(360, 330),
+            AutoSize = true,
+            ForeColor = Color.White
+        };
+        _novaEnabled.CheckedChanged += (_, _) =>
+        {
+            _settings.Current.NovaEnabled = _novaEnabled.Checked;
+            _settings.Save();
+            _launch.Stop();
+            _launch.Start();
+        };
+
+        var portLabel = new Label { Text = "Port (next launch)", Location = new Point(20, 365), AutoSize = true };
         _portBox = new NumericUpDown
         {
             Minimum = 1024,
             Maximum = 65535,
             Value = pairing.Port,
-            Location = new Point(150, 332),
+            Location = new Point(150, 362),
             Width = 90
         };
 
-        var savePortBtn = MakeButton("Save port", 250, 330, 100);
+        var savePortBtn = MakeButton("Save port", 250, 360, 100);
         savePortBtn.Click += (_, _) =>
         {
             _settings.Current.Port = (int)_portBox.Value;
@@ -151,7 +208,94 @@ public sealed class DashboardForm : Form
                 MessageBoxIcon.Information);
         };
 
-        var row1Y = 375;
+        var novaHostLabel = new Label { Text = "Nova host (blank = mDNS)", Location = new Point(20, 400), AutoSize = true };
+        _novaHost = new TextBox
+        {
+            Text = _settings.Current.NovaHost ?? "",
+            Location = new Point(200, 397),
+            Width = 180
+        };
+        var saveNovaBtn = MakeButton("Save Nova", 390, 395, 100);
+        saveNovaBtn.Click += (_, _) =>
+        {
+            _settings.Current.NovaHost = string.IsNullOrWhiteSpace(_novaHost.Text) ? null : _novaHost.Text.Trim();
+            _settings.Save();
+            _launch.Stop();
+            _launch.Start();
+            _state.LogAction("nova:settings_saved");
+        };
+
+        _clipsEnabled = new CheckBox
+        {
+            Text = "Swing clips",
+            Checked = _settings.Current.ClipCaptureEnabled,
+            Location = new Point(20, 430),
+            AutoSize = true,
+            ForeColor = Color.White
+        };
+        _clipsEnabled.CheckedChanged += (_, _) =>
+        {
+            _settings.Current.ClipCaptureEnabled = _clipsEnabled.Checked;
+            _settings.Save();
+            _cameras.ApplySettingsAndRestart();
+        };
+
+        _clipsLabel = new Label
+        {
+            Text = "Clips: —",
+            Location = new Point(130, 432),
+            Size = new Size(380, 22),
+            ForeColor = Color.FromArgb(180, 210, 185)
+        };
+
+        var faceLabel = new Label { Text = "Face-on cam", Location = new Point(20, 462), AutoSize = true };
+        _faceOnCam = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Location = new Point(120, 458),
+            Width = 150
+        };
+        var dtlLabel = new Label { Text = "DTL cam", Location = new Point(280, 462), AutoSize = true };
+        _dtlCam = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Location = new Point(350, 458),
+            Width = 150
+        };
+        PopulateCameraCombos();
+
+        var saveCamsBtn = MakeButton("Save cams", 20, 492, 100);
+        saveCamsBtn.Click += (_, _) =>
+        {
+            _settings.Current.CameraFaceOnDeviceId = SelectedCameraId(_faceOnCam);
+            _settings.Current.CameraDtlDeviceId = SelectedCameraId(_dtlCam);
+            _settings.Save();
+            _cameras.ApplySettingsAndRestart();
+            _state.LogAction("cams:saved");
+        };
+        var refreshCamsBtn = MakeButton("Refresh cams", 130, 492, 110);
+        refreshCamsBtn.Click += (_, _) => PopulateCameraCombos();
+        var testClipBtn = MakeButton("Test clip", 250, 492, 100);
+        testClipBtn.Click += (_, _) => _clipPipeline.TestCapture();
+        var openClipsBtn = MakeButton("Clips folder", 360, 492, 110);
+        openClipsBtn.Click += (_, _) =>
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = _clipStore.RootPath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Bay Control");
+            }
+        };
+
+        var row1Y = 535;
         var copyBtn = MakeButton("Copy URL", 20, row1Y, 100);
         copyBtn.Click += (_, _) => Clipboard.SetText(_pairing.GetControllerUrl());
 
@@ -170,7 +314,7 @@ public sealed class DashboardForm : Form
         var helpBtn = MakeButton("Help", 420, row1Y, 90);
         helpBtn.Click += (_, _) => OpenUrl("https://github.com/jad3tx/bay-control/blob/main/docs/install.md");
 
-        var row2Y = 415;
+        var row2Y = 575;
         var profilesBtn = MakeButton("Open profiles folder", 20, row2Y, 160);
         profilesBtn.Click += (_, _) =>
         {
@@ -210,15 +354,15 @@ public sealed class DashboardForm : Form
         var testLabel = new Label
         {
             Text = "Test action (sends keys now — focus Notepad or your sim first)",
-            Location = new Point(20, 460),
+            Location = new Point(20, 620),
             AutoSize = true,
             ForeColor = Color.FromArgb(180, 210, 185)
         };
         _testAction = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Location = new Point(20, 485),
-            Width = 280
+            Location = new Point(20, 645),
+            Width = 220
         };
         foreach (var id in _profiles.Profiles.Values.SelectMany(p => p.Actions.Keys).Distinct().OrderBy(x => x))
         {
@@ -234,13 +378,20 @@ public sealed class DashboardForm : Form
             }
         }
 
-        var testBtn = MakeButton("Test", 310, 483, 90);
+        var testBtn = MakeButton("Test", 250, 643, 80);
         testBtn.Click += (_, _) => RunTestAction();
+
+        var simShotBtn = MakeButton("Simulate shot", 340, 643, 120);
+        simShotBtn.Click += (_, _) =>
+        {
+            var shot = _shots.Ingest(ShotNormalizer.Simulate());
+            _state.LogAction($"simulate:{shot.Id[..8]}");
+        };
 
         _log = new ListBox
         {
-            Location = new Point(20, 530),
-            Size = new Size(500, 160),
+            Location = new Point(20, 690),
+            Size = new Size(500, 200),
             BackColor = Color.FromArgb(12, 28, 18),
             ForeColor = Color.FromArgb(200, 220, 200),
             BorderStyle = BorderStyle.FixedSingle
@@ -253,11 +404,27 @@ public sealed class DashboardForm : Form
         Controls.Add(_pinLabel);
         Controls.Add(_statusLabel);
         Controls.Add(_healthLabel);
+        Controls.Add(_novaLabel);
+        Controls.Add(_lastShotLabel);
         Controls.Add(_autostart);
         Controls.Add(_pauseRemote);
+        Controls.Add(_novaEnabled);
         Controls.Add(portLabel);
         Controls.Add(_portBox);
         Controls.Add(savePortBtn);
+        Controls.Add(novaHostLabel);
+        Controls.Add(_novaHost);
+        Controls.Add(saveNovaBtn);
+        Controls.Add(_clipsEnabled);
+        Controls.Add(_clipsLabel);
+        Controls.Add(faceLabel);
+        Controls.Add(_faceOnCam);
+        Controls.Add(dtlLabel);
+        Controls.Add(_dtlCam);
+        Controls.Add(saveCamsBtn);
+        Controls.Add(refreshCamsBtn);
+        Controls.Add(testClipBtn);
+        Controls.Add(openClipsBtn);
         Controls.Add(copyBtn);
         Controls.Add(openBtn);
         Controls.Add(firewallBtn);
@@ -268,6 +435,7 @@ public sealed class DashboardForm : Form
         Controls.Add(testLabel);
         Controls.Add(_testAction);
         Controls.Add(testBtn);
+        Controls.Add(simShotBtn);
         Controls.Add(_log);
 
         _tray = new NotifyIcon
@@ -377,11 +545,79 @@ public sealed class DashboardForm : Form
         _statusLabel.Text = $"{(_state.RemotePaused ? "PAUSED · " : "")}{_state.ConnectedClients} client(s)\nPort {_pairing.Port}";
         _urlLabel.Text = _pairing.GetControllerUrl();
         _healthLabel.Text = BuildHealthText();
+
+        var nova = _launch.NovaState;
+        var tip = string.IsNullOrWhiteSpace(_launch.NovaDetail) ? "" : $" — {_launch.NovaDetail}";
+        if (tip.Length > 48)
+        {
+            tip = tip[..45] + "…";
+        }
+
+        _novaLabel.Text = $"Nova: {nova}{tip}";
+        _novaLabel.ForeColor = nova switch
+        {
+            "connected" => Color.FromArgb(125, 206, 160),
+            "searching" or "connecting" => Color.FromArgb(240, 199, 94),
+            "disabled" => Color.FromArgb(160, 170, 160),
+            _ => Color.FromArgb(224, 122, 95)
+        };
+
+        var latest = _shots.Latest;
+        if (latest is null)
+        {
+            _lastShotLabel.Text = "Last shot: waiting…";
+        }
+        else
+        {
+            var mph = ShotNormalizer.MpsToMph(latest.Ball.SpeedMps);
+            _lastShotLabel.Text =
+                $"Last shot: {mph:0.0} mph · VLA {latest.Ball.VlaDeg:0.0}° · spin {latest.Ball.TotalSpinRpm:0} · {latest.Source}";
+        }
+
+        _clipsLabel.Text = $"Clips: {_cameras.StatusSummary()} · {_clipStore.List(200).Count} saved";
+
         _log.Items.Clear();
         foreach (var line in _state.RecentActions.Reverse())
         {
             _log.Items.Add(line);
         }
+    }
+
+    private void PopulateCameraCombos()
+    {
+        var devices = _cameras.EnumerateDevices();
+        FillCameraCombo(_faceOnCam, devices, _settings.Current.CameraFaceOnDeviceId);
+        FillCameraCombo(_dtlCam, devices, _settings.Current.CameraDtlDeviceId);
+    }
+
+    private static void FillCameraCombo(ComboBox box, IReadOnlyList<VideoDeviceInfo> devices, string? selectedId)
+    {
+        box.Items.Clear();
+        box.Items.Add(new CamItem(null, "(none)"));
+        foreach (var d in devices)
+        {
+            box.Items.Add(new CamItem(d.Id, d.Name));
+        }
+
+        var idx = 0;
+        for (var i = 0; i < box.Items.Count; i++)
+        {
+            if (box.Items[i] is CamItem item && item.Id == selectedId)
+            {
+                idx = i;
+                break;
+            }
+        }
+
+        box.SelectedIndex = idx;
+    }
+
+    private static string? SelectedCameraId(ComboBox box) =>
+        box.SelectedItem is CamItem item ? item.Id : null;
+
+    private sealed record CamItem(string? Id, string Label)
+    {
+        public override string ToString() => Label;
     }
 
     private string BuildHealthText()

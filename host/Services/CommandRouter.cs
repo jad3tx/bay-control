@@ -1,5 +1,6 @@
 using System.Text.Json;
 using BayControl.Host.Models;
+using BayControl.Host.Services.Launch;
 
 namespace BayControl.Host.Services;
 
@@ -7,7 +8,10 @@ public sealed class CommandRouter(
     FocusGuard focus,
     ProfileService profiles,
     InputInjector input,
-    AppState state)
+    AppState state,
+    ShotIngestService? shots = null,
+    LaunchMonitorCoordinator? launch = null,
+    SettingsService? settings = null)
 {
     private long _lastToggleTicks;
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -51,6 +55,10 @@ public sealed class CommandRouter(
     {
         var focusState = focus.GetState();
         var (healthCode, statusText, tip) = ResolveHealth(focusState);
+        var speedUnit = settings?.Current.DisplaySpeedUnit ?? "mph";
+        var distanceUnit = settings?.Current.DisplayDistanceUnit ?? "yards";
+        var latest = shots?.Latest;
+
         return new
         {
             type = "status",
@@ -66,6 +74,12 @@ public sealed class CommandRouter(
             activeProfileName = focusState.Profile?.DisplayName,
             manualOverrideId = profiles.ManualOverrideId,
             bookmarkHint = "Connected. Use Share → Add to Home Screen to keep this pairing on your home screen.",
+            lastShotId = latest?.Id,
+            lastShot = latest is null ? null : ShotDto.ToClient(latest, speedUnit, distanceUnit),
+            launch = launch is null
+                ? null
+                : new { nova = launch.NovaState, tee = launch.TeeState },
+            displayUnits = new { speed = speedUnit, distance = distanceUnit },
             profiles = profiles.Profiles.Values.Select(p => new
             {
                 p.Id,

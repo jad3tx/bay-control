@@ -51,12 +51,28 @@
 
       <nav class="surface-nav" id="surfaceNav" aria-label="Remote surfaces">
         <button type="button" class="surface-tab active" data-surface="play" aria-pressed="true">Play</button>
+        <button type="button" class="surface-tab" data-surface="swings" aria-pressed="false">Swings</button>
         <button type="button" class="surface-tab" data-surface="more" aria-pressed="false">More</button>
         <button type="button" class="surface-tab" data-surface="trackpad" aria-pressed="false">Trackpad</button>
       </nav>
 
       <div class="board" id="board">
         <section class="surface surface-play active" id="surface-play" aria-label="Play">
+          <div class="last-shot" id="lastShot" aria-live="polite">
+            <div class="last-shot-head">
+              <h2 class="zone-title">Last shot</h2>
+              <span class="source-chip" id="shotSource">—</span>
+            </div>
+            <p class="zone-sub" id="shotEmpty">Waiting for first shot…</p>
+            <div class="metric-grid hidden" id="shotMetrics">
+              <div class="metric"><span class="metric-val" id="mSpeed">—</span><span class="metric-lbl">Speed</span></div>
+              <div class="metric"><span class="metric-val" id="mVla">—</span><span class="metric-lbl">VLA</span></div>
+              <div class="metric"><span class="metric-val" id="mHla">—</span><span class="metric-lbl">HLA</span></div>
+              <div class="metric"><span class="metric-val" id="mSpin">—</span><span class="metric-lbl">Spin</span></div>
+              <div class="metric"><span class="metric-val" id="mAxis">—</span><span class="metric-lbl">Axis</span></div>
+              <div class="metric"><span class="metric-val" id="mCarry">—</span><span class="metric-lbl">Carry</span></div>
+            </div>
+          </div>
           <div class="play-grid">
             <div class="play-clubs">
               <div id="zone-play-buttons" class="pad pad-clubs"></div>
@@ -82,6 +98,19 @@
               <div id="zone-reads-buttons" class="pad pad-reads"></div>
             </div>
           </div>
+        </section>
+
+        <section class="surface surface-swings" id="surface-swings" aria-label="Swings" hidden>
+          <h2 class="zone-title">Swings</h2>
+          <p class="zone-sub">±3s around impact · face-on &amp; down-the-line</p>
+          <div class="swing-role-tabs" id="swingRoleTabs">
+            <button type="button" class="role-tab active" data-role="all">All</button>
+            <button type="button" class="role-tab" data-role="face_on">Face-on</button>
+            <button type="button" class="role-tab" data-role="down_the_line">DTL</button>
+          </div>
+          <video id="swingPlayer" class="swing-player" playsinline controls></video>
+          <p class="swing-meta" id="swingMeta">No clip selected</p>
+          <div id="swingList" class="swing-list"></div>
         </section>
 
         <section class="surface surface-more" id="surface-more" aria-label="More" hidden>

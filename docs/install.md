@@ -1,5 +1,36 @@
 # Install Bay Control
 
+## Launch monitor (Nova)
+
+Bay Control can show **last-shot metrics** from a Nova (Open Launch) on the same LAN:
+
+1. Power on Nova and join the **same Wi‑Fi** as the sim PC (not Guest).
+2. Leave **Nova launch data** checked on the Bay Control dashboard (default on).
+3. Optional: set **Nova host** to the Nova IP if mDNS discovery fails; default WS port is **2920**.
+4. Use **Simulate shot** on the dashboard to exercise the phone UI without hitting a ball.
+
+Open Connect Tee (proxy on port 921) is reserved for a later build and stays off by default.
+
+## Swing cameras (dual USB)
+
+Bay Control can save **±3 second** clips around each shot from up to two USB webcams on the sim PC (face-on + down-the-line; club-face optional later):
+
+1. Plug both cameras into the **sim PC** running Bay Control.
+2. Allow camera access if Windows prompts (Settings → Privacy → Camera).
+3. On the dashboard: enable **Swing clips**, pick **Face-on cam** and **DTL cam**, click **Save cams**.
+4. Hit a ball (or **Simulate shot** / **Test clip**) — clips appear under **Swings** on the phone remote.
+5. Files live in `%LocalAppData%\BayControl\clips\` (Open **Clips folder** on the dashboard).
+
+## Update from Git (sim PC)
+
+If the sim PC has **Git** and the **.NET 8 SDK**, you can pull and rebuild in place:
+
+```powershell
+irm https://raw.githubusercontent.com/jad3tx/bay-control/main/tools/Update-BayControl.ps1 | iex
+```
+
+Or from a clone: `.\tools\Update-BayControl.ps1` (optional `-Tag v1.3.0`, `-SkipPull`). App install path: `%LOCALAPPDATA%\BayControl\app`.
+
 ## Recommended (release zip)
 
 1. Download **BayControl-win-x64.zip** from the [latest release](https://github.com/jad3tx/bay-control/releases/latest).
