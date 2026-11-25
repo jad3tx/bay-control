@@ -73,6 +73,7 @@ public sealed class DashboardForm : Form
         BackColor = Color.FromArgb(18, 42, 28);
         ForeColor = Color.FromArgb(232, 240, 230);
         Font = new Font("Segoe UI", 10f);
+        Icon = LoadAppIcon();
 
         var title = new Label
         {
@@ -442,7 +443,7 @@ public sealed class DashboardForm : Form
         {
             Visible = true,
             Text = "Bay Control",
-            Icon = SystemIcons.Application
+            Icon = LoadAppIcon()
         };
         _tray.DoubleClick += (_, _) => ShowDashboard();
 
@@ -634,6 +635,30 @@ public sealed class DashboardForm : Form
         }
 
         return $"Health: reachable at {ip}:{_pairing.Port} · same Wi‑Fi required";
+    }
+
+    private static Icon LoadAppIcon()
+    {
+        try
+        {
+            var beside = Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico");
+            if (File.Exists(beside))
+            {
+                return new Icon(beside);
+            }
+
+            var exe = Application.ExecutablePath;
+            if (!string.IsNullOrEmpty(exe) && File.Exists(exe))
+            {
+                return Icon.ExtractAssociatedIcon(exe) ?? SystemIcons.Application;
+            }
+        }
+        catch
+        {
+            // fall through
+        }
+
+        return SystemIcons.Application;
     }
 
     private static Button MakeButton(string text, int x, int y, int width) => new()

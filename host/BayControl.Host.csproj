@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon />
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AssemblyName>BayControl</AssemblyName>
     <RootNamespace>BayControl.Host</RootNamespace>
     <Product>Bay Control</Product>
@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\profiles\**\*" Link="profiles\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\web\index.html" Link="wwwroot\index.html" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\web\index.html')" />
     <Content Include="..\web\app.js" Link="wwwroot\app.js" CopyToOutputDirectory="PreserveNewest" Condition="Exists('..\web\app.js')" />

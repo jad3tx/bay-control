@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Bay Control">
+  <!-- C1 final: flag-centered, slightly larger green -->
+  <rect width="128" height="128" rx="28" fill="#0f2a1c"/>
+  <!-- green sits a touch low so flag occupies vertical center -->
+  <ellipse cx="64" cy="78" rx="52" ry="38" fill="none" stroke="#f0c75e" stroke-width="3.5"/>
+  <ellipse cx="64" cy="78" rx="44" ry="32" fill="#1a4a2e"/>
+  <ellipse cx="64" cy="78" rx="30" ry="22" fill="#2f7a4a"/>
+  <ellipse cx="64" cy="78" rx="15" ry="11" fill="#3b8f58"/>
+  <!-- ball just right of cup / flag base -->
+  <circle cx="76" cy="74" r="8" fill="#f3f7f0" stroke="#c5d4c0" stroke-width="1.2"/>
+  <!-- flagstick centered on x=64 -->
+  <path d="M64 22v50" stroke="#e8f2e4" stroke-width="6" stroke-linecap="round"/>
+  <path d="M64 22h30l-9 12 9 12H64V22z" fill="#f3f7f0"/>
+</svg>
