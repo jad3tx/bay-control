@@ -34,6 +34,8 @@ public sealed class DashboardForm : Form
     private readonly TextBox _novaHost;
     private readonly ComboBox _faceOnCam;
     private readonly ComboBox _dtlCam;
+    private readonly ComboBox _clipRes;
+    private readonly NumericUpDown _clipFps;
     private readonly NumericUpDown _portBox;
     private readonly ComboBox _testAction;
     private readonly System.Windows.Forms.Timer _refreshTimer;
@@ -66,7 +68,7 @@ public sealed class DashboardForm : Form
 
         Text = "Bay Control";
         Width = 560;
-        Height = 980;
+        Height = 1018;
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
@@ -265,20 +267,46 @@ public sealed class DashboardForm : Form
         };
         PopulateCameraCombos();
 
-        var saveCamsBtn = MakeButton("Save cams", 20, 492, 100);
+        var resLabel = new Label { Text = "Resolution", Location = new Point(20, 496), AutoSize = true };
+        _clipRes = new ComboBox
+        {
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            Location = new Point(120, 492),
+            Width = 150
+        };
+        PopulateResolutionCombo();
+
+        var fpsLabel = new Label { Text = "FPS", Location = new Point(280, 496), AutoSize = true };
+        _clipFps = new NumericUpDown
+        {
+            Minimum = CameraCaptureSession.MinFps,
+            Maximum = CameraCaptureSession.MaxFps,
+            Increment = 30,
+            Value = Math.Clamp(_settings.Current.ClipFps, CameraCaptureSession.MinFps, CameraCaptureSession.MaxFps),
+            Location = new Point(350, 492),
+            Width = 80
+        };
+
+        var saveCamsBtn = MakeButton("Save cams", 20, 528, 100);
         saveCamsBtn.Click += (_, _) =>
         {
             _settings.Current.CameraFaceOnDeviceId = SelectedCameraId(_faceOnCam);
             _settings.Current.CameraDtlDeviceId = SelectedCameraId(_dtlCam);
+            if (_clipRes.SelectedItem is ResItem res)
+            {
+                _settings.Current.ClipWidth = res.Width;
+                _settings.Current.ClipHeight = res.Height;
+            }
+            _settings.Current.ClipFps = (int)_clipFps.Value;
             _settings.Save();
             _cameras.ApplySettingsAndRestart();
-            _state.LogAction("cams:saved");
+            _state.LogAction($"cams:saved({_settings.Current.ClipWidth}x{_settings.Current.ClipHeight}@{_settings.Current.ClipFps})");
         };
-        var refreshCamsBtn = MakeButton("Refresh cams", 130, 492, 110);
+        var refreshCamsBtn = MakeButton("Refresh cams", 130, 528, 110);
         refreshCamsBtn.Click += (_, _) => PopulateCameraCombos();
-        var testClipBtn = MakeButton("Test clip", 250, 492, 100);
+        var testClipBtn = MakeButton("Test clip", 250, 528, 100);
         testClipBtn.Click += (_, _) => _clipPipeline.TestCapture();
-        var openClipsBtn = MakeButton("Clips folder", 360, 492, 110);
+        var openClipsBtn = MakeButton("Clips folder", 360, 528, 110);
         openClipsBtn.Click += (_, _) =>
         {
             try
@@ -296,7 +324,7 @@ public sealed class DashboardForm : Form
             }
         };
 
-        var row1Y = 535;
+        var row1Y = 572;
         var copyBtn = MakeButton("Copy URL", 20, row1Y, 100);
         copyBtn.Click += (_, _) => Clipboard.SetText(_pairing.GetControllerUrl());
 
@@ -315,7 +343,7 @@ public sealed class DashboardForm : Form
         var helpBtn = MakeButton("Help", 420, row1Y, 90);
         helpBtn.Click += (_, _) => OpenUrl("https://github.com/jad3tx/bay-control/blob/main/docs/install.md");
 
-        var row2Y = 575;
+        var row2Y = 612;
         var profilesBtn = MakeButton("Open profiles folder", 20, row2Y, 160);
         profilesBtn.Click += (_, _) =>
         {
@@ -355,14 +383,14 @@ public sealed class DashboardForm : Form
         var testLabel = new Label
         {
             Text = "Test action (sends keys now — focus Notepad or your sim first)",
-            Location = new Point(20, 620),
+            Location = new Point(20, 657),
             AutoSize = true,
             ForeColor = Color.FromArgb(180, 210, 185)
         };
         _testAction = new ComboBox
         {
             DropDownStyle = ComboBoxStyle.DropDownList,
-            Location = new Point(20, 645),
+            Location = new Point(20, 682),
             Width = 220
         };
         foreach (var id in _profiles.Profiles.Values.SelectMany(p => p.Actions.Keys).Distinct().OrderBy(x => x))
@@ -379,10 +407,10 @@ public sealed class DashboardForm : Form
             }
         }
 
-        var testBtn = MakeButton("Test", 250, 643, 80);
+        var testBtn = MakeButton("Test", 250, 680, 80);
         testBtn.Click += (_, _) => RunTestAction();
 
-        var simShotBtn = MakeButton("Simulate shot", 340, 643, 120);
+        var simShotBtn = MakeButton("Simulate shot", 340, 680, 120);
         simShotBtn.Click += (_, _) =>
         {
             var shot = _shots.Ingest(ShotNormalizer.Simulate());
@@ -391,7 +419,7 @@ public sealed class DashboardForm : Form
 
         _log = new ListBox
         {
-            Location = new Point(20, 690),
+            Location = new Point(20, 727),
             Size = new Size(500, 200),
             BackColor = Color.FromArgb(12, 28, 18),
             ForeColor = Color.FromArgb(200, 220, 200),
@@ -422,6 +450,10 @@ public sealed class DashboardForm : Form
         Controls.Add(_faceOnCam);
         Controls.Add(dtlLabel);
         Controls.Add(_dtlCam);
+        Controls.Add(resLabel);
+        Controls.Add(_clipRes);
+        Controls.Add(fpsLabel);
+        Controls.Add(_clipFps);
         Controls.Add(saveCamsBtn);
         Controls.Add(refreshCamsBtn);
         Controls.Add(testClipBtn);
@@ -619,6 +651,36 @@ public sealed class DashboardForm : Form
     private sealed record CamItem(string? Id, string Label)
     {
         public override string ToString() => Label;
+    }
+
+    private void PopulateResolutionCombo()
+    {
+        var curW = _settings.Current.ClipWidth;
+        var curH = _settings.Current.ClipHeight;
+        var presets = new List<(int W, int H)> { (640, 480), (1280, 720), (1920, 1080) };
+        if (curW > 0 && curH > 0 && !presets.Any(p => p.W == curW && p.H == curH))
+        {
+            presets.Add((curW, curH));
+        }
+
+        _clipRes.Items.Clear();
+        var selected = 0;
+        for (var i = 0; i < presets.Count; i++)
+        {
+            var (w, h) = presets[i];
+            _clipRes.Items.Add(new ResItem(w, h));
+            if (w == curW && h == curH)
+            {
+                selected = i;
+            }
+        }
+
+        _clipRes.SelectedIndex = selected;
+    }
+
+    private sealed record ResItem(int Width, int Height)
+    {
+        public override string ToString() => $"{Width}x{Height}";
     }
 
     private string BuildHealthText()

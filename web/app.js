@@ -58,7 +58,8 @@ const state = {
   clips: [],
   clipRoleFilter: "all",
   selectedClipId: null,
-  userPinnedClip: false
+  userPinnedClip: false,
+  playbackRate: 1
 };
 
 function qsToken() {
@@ -397,6 +398,7 @@ function selectClip(id, pinned) {
   const meta = document.getElementById("swingMeta");
   if (player) {
     player.src = `/api/clips/${encodeURIComponent(id)}/video?${authQuery()}`;
+    player.playbackRate = state.playbackRate;
     player.play?.().catch((err) => {
       if (err && err.name !== "NotAllowedError" && meta && !player.error) {
         meta.textContent = `Playback failed: ${err.message || err.name}`;
@@ -509,12 +511,27 @@ function bindUi() {
 
   const swingPlayer = document.getElementById("swingPlayer");
   if (swingPlayer) {
+    swingPlayer.addEventListener("loadedmetadata", () => {
+      swingPlayer.playbackRate = state.playbackRate;
+    });
     swingPlayer.addEventListener("error", () => {
       const err = swingPlayer.error;
       const meta = document.getElementById("swingMeta");
       if (!err || !meta) return;
       const detail = err.message ? `: ${err.message}` : "";
       meta.textContent = `Playback error (code ${err.code})${detail}`;
+    });
+  }
+
+  const speedTabs = document.getElementById("swingSpeedTabs");
+  if (speedTabs) {
+    speedTabs.addEventListener("click", (ev) => {
+      const tab = ev.target.closest(".speed-tab");
+      if (!tab) return;
+      const rate = Number(tab.dataset.speed) || 1;
+      state.playbackRate = rate;
+      speedTabs.querySelectorAll(".speed-tab").forEach((t) => t.classList.toggle("active", t === tab));
+      if (swingPlayer) swingPlayer.playbackRate = rate;
     });
   }
 

@@ -1,10 +1,14 @@
 using System.Diagnostics;
+using System.Threading.Channels;
 using OpenCvSharp;
 
 namespace BayControl.Host.Services.Clips;
 
 public sealed class CameraCaptureSession : IDisposable
 {
+    public const int MinFps = 10;
+    public const int MaxFps = 150;
+
     private static readonly (VideoCaptureAPIs Api, bool UseMjpg, string Label)[] CaptureCandidates =
     [
         (VideoCaptureAPIs.DSHOW, true, "DSHOW+MJPG"),
@@ -23,6 +27,7 @@ public sealed class CameraCaptureSession : IDisposable
     private VideoCapture? _capture;
     private long _framesCaptured;
     private long _lastFrameTicks;
+    private double _measuredFps;
 
     public string Role { get; }
     public string DeviceId { get; }
@@ -30,6 +35,7 @@ public sealed class CameraCaptureSession : IDisposable
     public string? LastError { get; private set; }
     public string? BackendName { get; private set; }
     public long FramesCaptured => Interlocked.Read(ref _framesCaptured);
+    public double MeasuredFps => Volatile.Read(ref _measuredFps);
     public DateTimeOffset? LastFrameUtc
     {
         get
@@ -54,7 +60,7 @@ public sealed class CameraCaptureSession : IDisposable
         _index = index;
         _width = width;
         _height = height;
-        _fps = Math.Clamp(fps, 10, 60);
+        _fps = Math.Clamp(fps, MinFps, MaxFps);
         _ring = new ClipRingBuffer(keepMs);
     }
 
@@ -63,6 +69,7 @@ public sealed class CameraCaptureSession : IDisposable
         Stop();
         Interlocked.Exchange(ref _framesCaptured, 0);
         Interlocked.Exchange(ref _lastFrameTicks, 0);
+        Volatile.Write(ref _measuredFps, 0);
         BackendName = null;
         LastError = null;
         _cts = new CancellationTokenSource();
@@ -81,6 +88,18 @@ public sealed class CameraCaptureSession : IDisposable
 
     private void RunAsync(CancellationToken ct)
     {
+        // Decouple USB frame reads from JPEG compression so high-FPS MJPEG capture (e.g. 150fps) doesn't stall.
+        var encodeQueue = Channel.CreateBounded<(Mat Frame, DateTimeOffset Timestamp)>(
+            new BoundedChannelOptions(64)
+            {
+                FullMode = BoundedChannelFullMode.DropOldest,
+                SingleReader = true,
+                SingleWriter = true
+            },
+            dropped => dropped.Frame.Dispose());
+
+        var encoderTask = Task.Run(() => EncodeLoop(encodeQueue.Reader, ct), CancellationToken.None);
+
         try
         {
             using var frame = new Mat();
@@ -121,7 +140,7 @@ public sealed class CameraCaptureSession : IDisposable
                         break;
                     }
 
-                    Thread.Sleep(25);
+                    Thread.Sleep(15);
                 }
 
                 if (!gotFirstFrame)
@@ -135,7 +154,21 @@ public sealed class CameraCaptureSession : IDisposable
                 BackendName = label;
                 IsRunning = true;
                 LastError = null;
-                RecordFrame(frame);
+
+                var fpsClock = Stopwatch.StartNew();
+                var windowFrames = 0;
+                EnqueueFrame(frame, encodeQueue.Writer, fpsClock, ref windowFrames);
+                while (!ct.IsCancellationRequested)
+                {
+                    if (!_capture.Read(frame) || frame.Empty())
+                    {
+                        Thread.Sleep(5);
+                        continue;
+                    }
+
+                    EnqueueFrame(frame, encodeQueue.Writer, fpsClock, ref windowFrames);
+                }
+
                 break;
             }
 
@@ -145,18 +178,6 @@ public sealed class CameraCaptureSession : IDisposable
                     ? $"Camera {_index} opened but delivered no frames"
                     : $"Could not open camera index {_index}";
                 IsRunning = false;
-                return;
-            }
-
-            while (!ct.IsCancellationRequested)
-            {
-                if (!_capture.Read(frame) || frame.Empty())
-                {
-                    Thread.Sleep(15);
-                    continue;
-                }
-
-                RecordFrame(frame);
             }
         }
         catch (Exception ex)
@@ -166,28 +187,77 @@ public sealed class CameraCaptureSession : IDisposable
         finally
         {
             IsRunning = false;
+            encodeQueue.Writer.TryComplete();
+            try { encoderTask.Wait(1000); } catch { /* ignore */ }
+            while (encodeQueue.Reader.TryRead(out var leftover))
+            {
+                leftover.Frame.Dispose();
+            }
+
             _capture?.Release();
             _capture?.Dispose();
             _capture = null;
         }
     }
 
-    private void RecordFrame(Mat frame)
+    private void EnqueueFrame(
+        Mat frame,
+        ChannelWriter<(Mat Frame, DateTimeOffset Timestamp)> writer,
+        Stopwatch fpsClock,
+        ref int windowFrames)
     {
         var now = DateTimeOffset.UtcNow;
+        Mat owned;
         if (frame.Width != _width || frame.Height != _height)
         {
-            using var sized = new Mat();
-            Cv2.Resize(frame, sized, new OpenCvSharp.Size(_width, _height));
-            _ring.Add(sized, now);
+            owned = new Mat();
+            Cv2.Resize(frame, owned, new OpenCvSharp.Size(_width, _height));
         }
         else
         {
-            _ring.Add(frame, now);
+            owned = frame.Clone();
+        }
+
+        if (!writer.TryWrite((owned, now)))
+        {
+            owned.Dispose();
         }
 
         Interlocked.Increment(ref _framesCaptured);
         Interlocked.Exchange(ref _lastFrameTicks, now.UtcTicks);
+
+        windowFrames++;
+        var elapsedMs = fpsClock.ElapsedMilliseconds;
+        if (elapsedMs >= 1000)
+        {
+            Volatile.Write(ref _measuredFps, windowFrames * 1000.0 / elapsedMs);
+            windowFrames = 0;
+            fpsClock.Restart();
+        }
+    }
+
+    private void EncodeLoop(ChannelReader<(Mat Frame, DateTimeOffset Timestamp)> reader, CancellationToken ct)
+    {
+        try
+        {
+            while (reader.WaitToReadAsync(ct).AsTask().GetAwaiter().GetResult())
+            {
+                while (reader.TryRead(out var item))
+                {
+                    using (item.Frame)
+                    {
+                        if (!ct.IsCancellationRequested)
+                        {
+                            _ring.Add(item.Frame, item.Timestamp);
+                        }
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // shutting down
+        }
     }
 
     public void Dispose()

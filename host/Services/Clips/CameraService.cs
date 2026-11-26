@@ -128,7 +128,13 @@ public sealed class CameraService : IDisposable
                 if (s.IsRunning && s.FramesCaptured > 0)
                 {
                     var ageSec = s.LastFrameUtc.HasValue ? (now - s.LastFrameUtc.Value).TotalSeconds : 99;
-                    return ageSec < 3.0 ? $"{name}✓" : $"{name} (stalled)";
+                    if (ageSec >= 3.0)
+                    {
+                        return $"{name} (stalled)";
+                    }
+
+                    var fps = s.MeasuredFps;
+                    return fps >= 1 ? $"{name}✓ {fps:0}fps" : $"{name}✓";
                 }
 
                 return string.IsNullOrEmpty(s.LastError) ? $"{name}…" : $"{name}✗";

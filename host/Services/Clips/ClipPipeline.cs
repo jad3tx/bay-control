@@ -96,7 +96,10 @@ public sealed class ClipPipeline
 
             var width = _settings.Current.ClipWidth;
             var height = _settings.Current.ClipHeight;
-            var fps = _settings.Current.ClipFps;
+            var spanSec = (frames[^1].Timestamp - frames[0].Timestamp).TotalSeconds;
+            var fps = spanSec >= 0.5
+                ? Math.Clamp((int)Math.Round((frames.Count - 1) / spanSec), CameraCaptureSession.MinFps, CameraCaptureSession.MaxFps)
+                : Math.Clamp(_settings.Current.ClipFps, CameraCaptureSession.MinFps, CameraCaptureSession.MaxFps);
             var temp = ClipEncoder.EncodeToTempMp4(frames, fps, width, height);
             try
             {

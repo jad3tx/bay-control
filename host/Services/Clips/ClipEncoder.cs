@@ -25,7 +25,7 @@ public static class ClipEncoder
             throw new InvalidOperationException("No frames to encode");
         }
 
-        fps = Math.Clamp(fps, 10, 60);
+        fps = Math.Clamp(fps, CameraCaptureSession.MinFps, CameraCaptureSession.MaxFps);
         // H.264 requires even frame dimensions.
         width = Math.Max(2, width & ~1);
         height = Math.Max(2, height & ~1);

@@ -378,6 +378,29 @@ dialog button {
   border: 1px solid var(--stroke);
 }
 
+.swing-speed-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.speed-tab {
+  min-height: 34px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--muted);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.speed-tab.active {
+  background: rgba(240, 199, 94, 0.2);
+  color: var(--accent);
+  border-color: rgba(240, 199, 94, 0.55);
+}
+
 .swing-meta {
   margin: 8px 0;
   font-size: 0.8rem;

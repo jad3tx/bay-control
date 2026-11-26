@@ -43,6 +43,32 @@ public class ClipEncoderTests
         }
     }
 
+    [Fact]
+    public void EncodeToTempMp4_supports_high_fps_150()
+    {
+        var frames = new List<ClipRingBuffer.FrameItem>();
+        var t0 = DateTimeOffset.UtcNow;
+        using (var mat = new Mat(240, 320, MatType.CV_8UC3, new Scalar(20, 90, 180)))
+        {
+            Cv2.ImEncode(".jpg", mat, out var jpeg);
+            for (var i = 0; i < 30; i++)
+            {
+                frames.Add(new ClipRingBuffer.FrameItem(t0.AddMilliseconds(i * 7), jpeg, 320, 240));
+            }
+        }
+
+        var output = ClipEncoder.EncodeToTempMp4(frames, fps: 150, width: 320, height: 240);
+        try
+        {
+            Assert.True(File.Exists(output));
+            Assert.True(new FileInfo(output).Length > 256);
+        }
+        finally
+        {
+            try { if (File.Exists(output)) File.Delete(output); } catch { /* ignore */ }
+        }
+    }
+
     private static bool IsMsmfH264Available()
     {
         var probePath = Path.Combine(Path.GetTempPath(), $"bayclip_probe_{Guid.NewGuid():N}.mp4");
