@@ -52,7 +52,7 @@ internal static class Program
         var launch = new LaunchMonitorCoordinator(nova, settings, shots);
 
         var clipStore = new ClipStore();
-        var cameras = new CameraService(settings);
+        var cameras = new CameraService(settings, state);
         var clipPipeline = new ClipPipeline(cameras, clipStore, settings, state);
 
         var router = new CommandRouter(focus, profiles, input, state, shots, launch, settings);

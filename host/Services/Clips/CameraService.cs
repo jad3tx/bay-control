@@ -5,12 +5,14 @@ namespace BayControl.Host.Services.Clips;
 public sealed class CameraService : IDisposable
 {
     private readonly SettingsService _settings;
+    private readonly AppState? _state;
     private readonly object _gate = new();
     private readonly Dictionary<string, CameraCaptureSession> _sessions = new();
 
-    public CameraService(SettingsService settings)
+    public CameraService(SettingsService settings, AppState? state = null)
     {
         _settings = settings;
+        _state = state;
     }
 
     public event Action? Changed;
@@ -150,7 +152,9 @@ public sealed class CameraService : IDisposable
             return;
         }
 
-        var session = new CameraCaptureSession(role, deviceId, index, width, height, fps, keepMs);
+        var session = new CameraCaptureSession(
+            role, deviceId, index, width, height, fps, keepMs,
+            msg => _state?.LogAction(msg));
         lock (_gate)
         {
             _sessions[role] = session;
