@@ -1,6 +1,6 @@
 # Bay Control
 
-Open-source local Wi‑Fi remote for **GSPro** and **Pureplay**. Run a small host on your Windows 11 sim PC, then open a web page on any phone, tablet, or PC on the same network.
+Open-source local Wi‑Fi remote for **GSPro** and **Pureplay**. Run a small host on your Windows 11 sim PC, then open a web page on any phone, tablet, or PC on the same network. With Nova Launch Monitor's it shows last shot data and can sync Shot Cameras to give you replay up to 10% speed (suitable camera helps a lot 150fps or higher).
 
 No App Store install. Scan the QR code and play from the mat.
 
